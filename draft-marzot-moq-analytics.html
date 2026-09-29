@@ -1,0 +1,2732 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>Metrics and Analytics for Media over QUIC Transport</title>
+<meta content="Giovanni Marzot" name="author">
+<meta content="
+       Media over QUIC Transport (MoQT) deployments need metrics that can be
+interpreted consistently across publishers, subscribers, relays, and
+collectors. Existing systems expose transport counters, media statistics,
+playback statistics, and request outcomes using different names, scopes, and
+units. 
+       This document defines a MoQT-oriented vocabulary and reporting model for
+publisher-, subscriber-, relay-, session-, link-, namespace-, and track-level
+metrics. It defines scope and cardinality guidance, a small common set of metric
+types and units, and informative mappings from metrics commonly available in
+WebRTC statistics, CMCD, and CMSD. It also describes how the vocabulary can be
+carried using existing or companion mechanisms, including MSF metrics tracks,
+subscriber feedback tracks, Event Timeline tracks, dedicated MoQT tracks, and
+implementation-specific export formats. 
+       This document does not define a mandatory metrics transport, a universal
+playback model, or a replacement for QUIC congestion-control feedback. 
+    " name="description">
+<meta content="xml2rfc 3.34.1" name="generator">
+<meta content="media over quic" name="keyword">
+<meta content="metrics" name="keyword">
+<meta content="analytics" name="keyword">
+<meta content="observability" name="keyword">
+<meta content="QoE" name="keyword">
+<meta content="draft-marzot-moq-analytics-latest" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.34.1
+    Python 3.14.7
+    ConfigArgParse 1.7.7
+    google-i18n-address 3.1.1
+    intervaltree 3.2.1
+    Jinja2 3.1.6
+    lxml 6.1.3
+    natsort 8.4.0
+    platformdirs 4.12.0
+    pycountry 26.2.16
+    PyYAML 6.0.3
+    requests 2.34.2
+    wcwidth 0.9.1
+-->
+<link href="draft-marzot-moq-analytics.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Lora SemiBold'), local('Lora-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: light dark;
+  --background-color: #fff;
+  --text-color: #222;
+  --title-color: #191919;
+  --link-color: #2a6496;
+  --highlight-color: #f9f9f9;
+  --line-color: #eee;
+  --pilcrow-weak: #ddd;
+  --pilcrow-strong: #bbb;
+  --small-font-size: 14.5px;
+  --font-mono: 'Oxygen Mono', monospace;
+  --font-title: "Sofia Sans Semi Condensed", sans-serif;
+  scrollbar-color: #bbb #eee;
+}
+body {
+  max-width: 600px;
+  margin: 75px auto;
+  padding: 0 5px;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  font: 16px/22px "Lora", serif;
+  scroll-behavior: smooth;
+}
+
+.ears {
+  display: none;
+}
+
+/* headings */
+section {
+  clear: both;
+}
+.section-number {
+  padding-right: 0.5em;
+}
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+  font-weight: 680;
+  margin: 0.8em 0 0.3em;
+  font-size-adjust: 0.5;
+  color: var(--title-color);
+}
+h1 {
+  &#title {
+    font-size: 32px;
+    line-height: 40px;
+    clear: both;
+    margin: 1.5em 0 0.2em;
+  }
+  &#rfcnum {
+    margin: 1.5em 0 0.2em;
+    & + h1#title {
+      margin: 0.2em 0;
+    }
+  }
+}
+
+h1, h2, h3 {
+  font-size: 22px;
+  line-height: 27px;
+}
+h4, h5, h6 {
+  font-size: 20px;
+  line-height: 24px;
+}
+
+/* general structure */
+.author {
+  padding-bottom: 0.3em;
+  vertical-align: top;
+}
+#abstract+p {
+  font-size: 18px;
+  line-height: 24px;
+  & code, & samp, & tt {
+    font-size: 16px;
+    line-height: 0;
+  }
+}
+
+p {
+  padding: 0;
+  margin: 0.5em 0;
+  text-align: left;
+}
+div {
+  margin: 0;
+}
+.alignRight {
+  margin: 1em 0;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    margin: 0;
+    float: right;
+    clear: both;
+  }
+  & > *:nth-child(2) {
+    clear: both;
+    display: block;
+    border: none;
+  }
+}
+svg {
+  display: block;
+  /* font-family isn't space-separated, but =~ will have to do */
+  &[font-family~="monospace" i], & [font-family~="monospace" i] {
+    font-family: var(--font-mono);
+  }
+}
+.alignCenter {
+  margin: 1em 0;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    /* this isn't optimal, but it's an existence proof.  PrinceXML doesn't
+       support flexbox yet.
+    */
+    display: table;
+    margin: 0 auto;
+  }
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 0.5em 2em;
+  & :is(ol, ul) {
+    margin-left: 1em;
+  }
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+  & li {
+    margin-top: 0.5em;
+  }
+}
+:is(ul, ol).compact, .ulCompact, .olCompact {
+  margin: 0 0 0 2em;
+  & li {
+    margin: 0;
+    & :first-child { margin-top: 0; }
+    & :last-child { margin-bottom: 0; }
+  }
+}
+
+/* definition lists */
+dl {
+  clear: left;
+  --indent: 3ch;
+  /* --indent: attr(indent ch); not supported in any browser, but we can dream */
+  &.olPercent {
+    --indent: 5ch;
+    & > dt {
+      min-width: calc(var(--indent) - 2ch);
+      float: none;
+    }
+  }
+
+  dl > dd > & {
+    margin-top: 0.5em;
+    margin-bottom: 0;
+  }
+
+  &:not(.dlNewline) > dt {
+    float: left;
+    margin-right: 2ch;
+    min-width: 8ch;
+  }
+  & > dd {
+    margin-bottom: .8em;
+    margin-left: var(--indent) !important; /* stupid element overrides */
+    min-height: 2ex;
+  }
+}
+:is(dl.compact, .dlCompact) > dd {
+  margin-bottom: 0;
+  & > :is(:first-child, .break:first-child + *) {
+    margin-top: 0;
+  }
+  & > :is(:last-child) {
+    margin-bottom: 0;
+  }
+}
+:is(dd, span).break {
+  display: none;
+}
+
+/* links */
+a {
+  text-decoration: none;
+  &[href] {
+    color: var(--link-color);
+    &:hover { text-decoration: underline; }
+    &.selfRef {
+      color: var(--text-color);
+      &:hover {
+        text-decoration: none;
+        background-color: var(--highlight-color);
+      }
+    }
+  }
+}
+.iref + a[href].internal {
+  color: var(--text-color);
+}
+a.xref:is(.cite, .auto), :is(#status-of-memo, #copyright) a {
+  white-space: nowrap;
+}
+
+/* Figures */
+tt, code, pre {
+  background-color: var(--highlight-color);
+  font: 14px/22px var(--font-mono);
+}
+tt, code {
+  /* changing the font for inline elements leads to different ascender
+     and descender heights; as we want to retain baseline alignment,
+     remove leading to avoid altering the final height of lines
+     note: this fails if these blocks take an entire line,
+     a different solution would be great */
+  line-height: 0;
+}
+:is(h1, h2, h3, h4, h5, h6) :is(tt, code) {
+  font-size: 84%;
+}
+pre {
+  border: 1px solid var(--line-color);
+  font-size: 13.5px;
+  line-height: 16px;
+  letter-spacing: -0.2px;
+  margin: 5px;
+  padding: 5px;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0.5em 0;
+  padding: 0;
+  & blockquote {
+    margin: 0.8em 0.4em 0.4em;
+  }
+}
+figcaption, caption {
+  font-style: italic;
+  margin: 0.5em 1.5em;
+  text-align: left;
+  caption-side: bottom;
+}
+@media screen {
+  /* Auto-collapse boilerplate. */
+  :is(#status-of-memo, #copyright) {
+    & p {
+      margin: -2px 0;
+      max-height: 0;
+      transition: max-height 2s ease, margin 0.5s ease 0.5s;
+      overflow: hidden;
+    }
+    &:hover p,
+    & h2:target ~ p {
+      margin: 0.5em 0;
+      max-height: 500px;
+      overflow: auto;
+    }
+  }
+  pre, svg {
+    display: inline-block;
+    /* In the horizontal direction, sometimes people make over-sized figures.
+       Scrollbars for those is therefore necessary: auto adds them as necessary..
+       In the vertical direction, the line-height can combine with the font
+       asender/descender height to produce scrollbars: hidden avoids that. */
+    overflow: auto hidden;
+  }
+  pre {
+    max-width: 100%;
+    width: calc(100% - 22px - 1em);
+  }
+  svg {
+    max-width: calc(100% - 22px - 1em);
+  }
+  figure pre {
+    display: block;
+    width: calc(100% - 25px);
+  }
+  :is(pre, svg) + .pilcrow {
+    display: inline-block;
+    vertical-align: text-bottom;
+    padding-bottom: 8px;
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 0 2em;
+  font-style: italic;
+}
+blockquote {
+  margin: 1em 0;
+  border-left: 2px var(--pilcrow-strong) solid;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+
+/* tables */
+table {
+  width: auto;
+  max-width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+  &.right { margin-left: auto; }
+  &.center { margin-left: auto; margin-right: auto; }
+  &.left { margin-right: auto; }
+  & .text-left { text-align: left; }
+  & .text-center { text-align: center; }
+  & .text-right { text-align: right; }
+  & caption {
+    margin: 0;
+    padding: 3px 0 3px 1em;
+  }
+  & p { margin: 0; }
+}
+
+thead, tbody {
+  border: 1px solid var(--line-color);
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 5px 10px;
+}
+th {
+  background-color: var(--line-color);
+}
+:is(tr:nth-child(2n), thead+tbody > tr:nth-child(2n+1)) > td {
+  background-color: var(--background-color);
+}
+:is(tr:nth-child(2n+1), thead+tbody > tr:nth-child(2n)) > td {
+  background-color: var(--highlight-color);
+}
+
+/* pilcrow */
+a.pilcrow {
+  margin-left: 3px;
+  opacity: 0.2;
+  user-select: none;
+  &[href] {
+    color: var(--pilcrow-weak);
+    &:hover { text-decoration: none; }
+  }
+  @media not print {
+    :hover > &, &:focus {
+      opacity: 1;
+    }
+    &[href]:hover {
+      color: var(--pilcrow-strong);
+      background-color: transparent;
+    }
+  }
+  @media print {
+    display: none;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid var(--line-color);
+}
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: 600;
+  font-size: var(--small-font-size);
+}
+.role {
+  font-variant: all-small-caps;
+}
+sub, sup {
+  line-height: 1;
+  font-size: 80%;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: var(--small-font-size);
+  line-height: 18px;
+  --identifier-width: 15ch;
+  & dt {
+    width: var(--identifier-width);
+    min-width: var(--identifier-width);
+    clear: left;
+    float: left;
+    text-align: right;
+    margin-right: 1ch;
+  }
+  & dd {
+    margin: 0;
+    margin-left: calc(1em + var(--identifier-width)) !important;
+    min-width: 5em;
+  }
+  & .authors {
+    & .author {
+      display: inline-block;
+      margin-right: 1.5em;
+    }
+    & .org {
+      font-style: italic;
+    }
+  }
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #999;
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+  & .prepared {
+    float: right;
+  }
+}
+
+/* table of contents */
+#toc {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+
+  & nav {
+    & ul {
+      margin: 0 0.5em 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    & li {
+      line-height: 1.3em;
+      margin: 2px 0;
+      padding-left: 1.2em;
+      text-indent: -1.2em;
+    }
+  }
+  & a.xref {
+    white-space: normal;
+  }
+}
+
+.references {
+  & > dt {
+    text-align: right;
+    font-weight: bold;
+    min-width: 10ch;
+    margin-right: 1.5ch;
+    &:target::before {
+      content: "⇒";
+      margin: 0 10px 0 -25px;
+    }
+  }
+  & > dd {
+    margin-left: 12ch !important;
+    overflow: visible;
+    & .refInstance {
+      margin-bottom: 0.8em;
+    }
+    & .ascii {
+      margin-bottom: 0.25em;
+    }
+  }
+}
+
+#rfc\.index\.index + ul {
+  margin-left: 0;
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  max-width: 20em;
+  margin: 1em auto 1em 0;
+
+  & .nameRole {
+    font-weight: 700;
+    margin-left: 0;
+  }
+  & .label {
+    margin: 0.5em 0;
+  }
+  & .type {
+    display: none;
+  }
+  & .alternative-contact {
+    margin: 0.5em 0 0.25em 0;
+  }
+  & .non-ascii {
+    margin: 0 0 0 2em;
+  }
+  & div.left {
+    text-align: left;
+  }
+  & div.right {
+    text-align: right;
+  }
+}
+
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+@media (min-width: 500px) {
+  #authors-addresses {
+    & > section {
+      column-count: 2;
+      column-gap: 20px;
+    }
+    & > section > h2 {
+      column-span: all;
+    }
+    /* hack for break-inside: avoid-column */
+    & address {
+      display: inline-block;
+      break-inside: avoid-column;
+    }
+  }
+}
+
+/* Comments */
+.rfcEditorRemove {
+  & p:first-of-type {
+    font-style: italic;
+  }
+}
+.cref {
+  background-color: rgba(249, 232, 105, 0.3);
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+
+@media screen {
+  #toc {
+    & nav {
+      font-family: var(--font-title);
+      font-weight: 360;
+      & > ul { margin-bottom: 2em; }
+      & ul {
+        margin: 0 0 0 4px;
+        & :is(p, li) {
+          margin: 2px 0;
+        }
+      }
+    }
+    & a.toplink {
+      float: right;
+    }
+  }
+}
+@media not screen {
+  #toc a.toplink {
+    display: none;
+  }
+}
+
+
+/* TOC layout for smaller screens */
+@media screen and (max-width: 929px) {
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 1px 0 0 0;
+    margin: 0;
+    border-bottom: 1px solid #ccc;
+    opacity: 0.6;
+    & h2 {
+      margin: 0;
+      padding: 2px 0 2px 6px;
+      padding-right: 1em;
+      font-size: 18px;
+      line-height: 24px;
+      min-width: 190px;
+      text-align: right;
+      background-color: #444;
+      color: white;
+      cursor: pointer;
+      &::before { /* css hamburger */
+        float: right;
+        position: relative;
+        width: 1em;
+        height: 1px;
+        left: -164px;
+        margin: 8px 0 0 0;
+        background: white none repeat scroll 0 0;
+        box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+        content: "";
+      }
+    }
+    & nav {
+      display: none;
+      background-color: var(--background-color);
+      padding: 0.5em 1em 1em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      height: calc(100vh - 48px);
+      border-left: 1px solid #ddd;
+    }
+    &.active {
+      opacity: 1;
+      & nav { display: block; }
+    }
+    /* Make the collapsed ToC header render white on gray also when it's a link */
+    & h2 a,
+    & h2 a:is(:link, :focus, :hover),
+    & a.toplink,
+    & a.toplink:hover {
+      color: white;
+      background-color: #444;
+      text-decoration: none;
+    }
+    & a.toplink {
+      margin: 2px 0.5em 0;
+    }
+  }
+}
+
+/* TOC layout for wide screens */
+@media screen and (min-width: 930px) {
+  body {
+    padding-right: 360px;
+    padding-right: calc(min(180px + 20%, 500px));
+  }
+  #toc {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    right: calc(50vw - 480px);
+    width: 312px;
+    margin: 0;
+    padding: 0;
+    z-index: 1;
+    & h2 {
+      margin: 0;
+      padding: 0.25em 1em 1em 0;
+    }
+    & nav {
+      display: block;
+      height: calc(90vh - 84px);
+      bottom: 0;
+      padding: 0.5em 0 2em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
+    & a.toplink {
+      margin: 8px 0.5em 0;
+    }
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc {
+    page-break-before: always;
+    border-top: none;
+    padding-top: 0;
+  }
+  #n-introduction {
+    page-break-before: always;
+  }
+  figure, pre, .vcard {
+    page-break-inside: avoid;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  :is(h2, h3, h4, h5, h6)+*, dd {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+}
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+}
+
+/* Dark mode. */
+@media (prefers-color-scheme: dark) {
+:root {
+  --background-color: #121212;
+  --text-color: #f0f0f0;
+  --title-color: #fff;
+  --link-color: #4da4f0;
+  --highlight-color: #282828;
+  --line-color: #444;
+  --pilcrow-weak: #444;
+  --pilcrow-strong: #666;
+  scrollbar-color: #777 #333;
+}
+}
+
+/* SVG Trick: a prefix match works because only black and white are allowed */
+svg {
+  & :is([stroke="black"], [stroke^="#000"]) {
+    stroke: var(--text-color);
+  }
+  & :is([stroke="white"], [stroke^="#fff"]) {
+    stroke: var(--background-color);
+  }
+  & :is([fill="black"], [fill^="#000"], :not([fill])) {
+    fill: var(--text-color);
+  }
+  & :is([fill="white"], [fill^="#fff"]) {
+    fill: var(--background-color);
+  }
+}
+</style>
+
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">MoQT Analytics</td>
+<td class="right">September 2026</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">Marzot</td>
+<td class="center">Expires 2 April 2027</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">Media Over QUIC</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-marzot-moq-analytics-latest</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2026-09-29" class="published">29 September 2026</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Informational</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2027-04-02">2 April 2027</time></dd>
+<dt class="label-authors">Author:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">G. Marzot</div>
+<div class="org">Oracle</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">Metrics and Analytics for Media over QUIC Transport</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">Media over QUIC Transport (MoQT) deployments need metrics that can be
+interpreted consistently across publishers, subscribers, relays, and
+collectors. Existing systems expose transport counters, media statistics,
+playback statistics, and request outcomes using different names, scopes, and
+units.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+<p id="section-abstract-2">This document defines a MoQT-oriented vocabulary and reporting model for
+publisher-, subscriber-, relay-, session-, link-, namespace-, and track-level
+metrics. It defines scope and cardinality guidance, a small common set of metric
+types and units, and informative mappings from metrics commonly available in
+WebRTC statistics, CMCD, and CMSD. It also describes how the vocabulary can be
+carried using existing or companion mechanisms, including MSF metrics tracks,
+subscriber feedback tracks, Event Timeline tracks, dedicated MoQT tracks, and
+implementation-specific export formats.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
+<p id="section-abstract-3">This document does not define a mandatory metrics transport, a universal
+playback model, or a replacement for QUIC congestion-control feedback.<a href="#section-abstract-3" class="pilcrow">¶</a></p>
+</section>
+<section class="note rfcEditorRemove" id="section-note.1">
+      <h2 id="name-about-this-document">
+<a href="#name-about-this-document" class="section-name selfRef">About This Document</a>
+      </h2>
+<p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
+<p id="section-note.1-2">
+        The latest revision of this draft can be found at <span><a href="https://gmarzot.github.io/draft-marzot-moq-analytics/draft-marzot-moq-analytics.html">https://gmarzot.github.io/draft-marzot-moq-analytics/draft-marzot-moq-analytics.html</a></span>.
+        Status information for this document may be found at <span><a href="https://datatracker.ietf.org/doc/draft-marzot-moq-analytics/">https://datatracker.ietf.org/doc/draft-marzot-moq-analytics/</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
+<p id="section-note.1-3">
+        Discussion of this document takes place on the
+        Media Over QUIC Working Group mailing list (<span><a href="mailto:moq@ietf.org">mailto:moq@ietf.org</a></span>),
+        which is archived at <span><a href="https://mailarchive.ietf.org/arch/browse/moq/">https://mailarchive.ietf.org/arch/browse/moq/</a></span>.
+        Subscribe at <span><a href="https://www.ietf.org/mailman/listinfo/moq/">https://www.ietf.org/mailman/listinfo/moq/</a></span>.<a href="#section-note.1-3" class="pilcrow">¶</a></p>
+<p id="section-note.1-4">Source for this draft and an issue tracker can be found at
+        <span><a href="https://github.com/gmarzot/draft-marzot-moq-analytics">https://github.com/gmarzot/draft-marzot-moq-analytics</a></span>.<a href="#section-note.1-4" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 2 April 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2026 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document. Code Components extracted from this
+            document must include Revised BSD License text as described in
+            Section 4.e of the Trust Legal Provisions and are provided without
+            warranty as described in the Revised BSD License.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.1">
+                <p id="section-toc.1-1.1.2.1.1" class="keepWithNext"><a href="#section-1.1" class="auto internal xref">1.1</a>.  <a href="#name-goals" class="internal xref">Goals</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.2">
+                <p id="section-toc.1-1.1.2.2.1" class="keepWithNext"><a href="#section-1.2" class="auto internal xref">1.2</a>.  <a href="#name-non-goals" class="internal xref">Non-Goals</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-definitions" class="internal xref">Conventions and Definitions</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-design-principles" class="internal xref">Design Principles</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1">
+                <p id="section-toc.1-1.3.2.1.1"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-measurement-layers" class="internal xref">Measurement Layers</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2">
+                <p id="section-toc.1-1.3.2.2.1"><a href="#section-3.2" class="auto internal xref">3.2</a>.  <a href="#name-observation-versus-interpre" class="internal xref">Observation versus Interpretation</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.3">
+                <p id="section-toc.1-1.3.2.3.1"><a href="#section-3.3" class="auto internal xref">3.3</a>.  <a href="#name-metric-types" class="internal xref">Metric Types</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-moqt-observability-model" class="internal xref">MoQT Observability Model</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-scopes" class="internal xref">Scopes</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2">
+                <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-reporter-perspective" class="internal xref">Reporter Perspective</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3">
+                <p id="section-toc.1-1.4.2.3.1"><a href="#section-4.3" class="auto internal xref">4.3</a>.  <a href="#name-labels-and-cardinality" class="internal xref">Labels and Cardinality</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-metric-registry" class="internal xref">Metric Registry</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-session-and-request-metrics" class="internal xref">Session and Request Metrics</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
+                <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-link-and-quic-metrics" class="internal xref">Link and QUIC Metrics</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3">
+                <p id="section-toc.1-1.5.2.3.1"><a href="#section-5.3" class="auto internal xref">5.3</a>.  <a href="#name-moqt-delivery-metrics" class="internal xref">MoQT Delivery Metrics</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.4">
+                <p id="section-toc.1-1.5.2.4.1"><a href="#section-5.4" class="auto internal xref">5.4</a>.  <a href="#name-media-and-subscriber-qoe-me" class="internal xref">Media and Subscriber QoE Metrics</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.5">
+                <p id="section-toc.1-1.5.2.5.1"><a href="#section-5.5" class="auto internal xref">5.5</a>.  <a href="#name-relay-and-resource-metrics" class="internal xref">Relay and Resource Metrics</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-report-data-model" class="internal xref">Report Data Model</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-carriage-and-integration" class="internal xref">Carriage and Integration</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.1">
+                <p id="section-toc.1-1.7.2.1.1"><a href="#section-7.1" class="auto internal xref">7.1</a>.  <a href="#name-metrics-tracks-and-msf" class="internal xref">Metrics Tracks and MSF</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.2">
+                <p id="section-toc.1-1.7.2.2.1"><a href="#section-7.2" class="auto internal xref">7.2</a>.  <a href="#name-feedback-tracks" class="internal xref">Feedback Tracks</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.3">
+                <p id="section-toc.1-1.7.2.3.1"><a href="#section-7.3" class="auto internal xref">7.3</a>.  <a href="#name-event-timeline-and-packagin" class="internal xref">Event Timeline and Packaging-Specific Tracks</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.4">
+                <p id="section-toc.1-1.7.2.4.1"><a href="#section-7.4" class="auto internal xref">7.4</a>.  <a href="#name-export-formats" class="internal xref">Export Formats</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-mappings-from-existing-voca" class="internal xref">Mappings from Existing Vocabularies</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.1">
+                <p id="section-toc.1-1.8.2.1.1"><a href="#section-8.1" class="auto internal xref">8.1</a>.  <a href="#name-webrtc-statistics" class="internal xref">WebRTC Statistics</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.2">
+                <p id="section-toc.1-1.8.2.2.1"><a href="#section-8.2" class="auto internal xref">8.2</a>.  <a href="#name-cmcd-and-cmsd" class="internal xref">CMCD and CMSD</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.3">
+                <p id="section-toc.1-1.8.2.3.1"><a href="#section-8.3" class="auto internal xref">8.3</a>.  <a href="#name-qlog-and-feedback" class="internal xref">qlog and Feedback</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-privacy-considerations" class="internal xref">Privacy Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref">11</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#section-12" class="auto internal xref"></a><a href="#name-use-of-generative-ai" class="internal xref">Use of Generative AI</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
+            <p id="section-toc.1-1.13.1"><a href="#section-13" class="auto internal xref"></a><a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.1">
+                <p id="section-toc.1-1.13.2.1.1"><a href="#section-13.1" class="auto internal xref"></a><a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.2">
+                <p id="section-toc.1-1.13.2.2.1"><a href="#section-13.2" class="auto internal xref"></a><a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
+            <p id="section-toc.1-1.14.1"><a href="#appendix-A" class="auto internal xref">Appendix A</a>.  <a href="#name-open-issues" class="internal xref">Open Issues</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
+            <p id="section-toc.1-1.15.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.16">
+            <p id="section-toc.1-1.16.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">MoQT <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> is a media-agnostic publish/subscribe protocol running over QUIC
+and WebTransport. It exposes protocol events and delivery coordinates, such as
+sessions, requests, namespaces, tracks, groups, objects, streams, and datagrams,
+that are useful for operational measurement. A deployment may also have a media
+pipeline that exposes codec, frame, buffer, and playback statistics.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">These measurements are currently difficult to combine. One implementation may
+expose subscription counters, another may expose QUIC recovery state, and a
+media endpoint may expose WebRTC statistics <span>[<a href="#WEBRTC-STATS" class="cite xref">WEBRTC-STATS</a>]</span>. The same concept
+may have different names, units, labels, and aggregation rules. A relay operator
+therefore cannot reliably compare a publisher's observations with a subscriber's
+observations or correlate them with relay and transport events.<a href="#section-1-2" class="pilcrow">¶</a></p>
+<p id="section-1-3">This document defines a common vocabulary rather than prescribing a single
+monitoring system. An implementation can expose the metrics through OpenMetrics
+<span>[<a href="#OPENMETRICS" class="cite xref">OPENMETRICS</a>]</span>, OpenTelemetry <span>[<a href="#OTEL" class="cite xref">OTEL</a>]</span>, qlog <span>[<a href="#MOQ-QLOG" class="cite xref">MOQ-QLOG</a>]</span>, a MoQT metrics track,
+an MSF <span>[<a href="#MSF" class="cite xref">MSF</a>]</span> track, a feedback track, or another format. The metric definition
+remains separate from the carriage mechanism.<a href="#section-1-3" class="pilcrow">¶</a></p>
+<div id="goals">
+<section id="section-1.1">
+        <h3 id="name-goals">
+<a href="#section-1.1" class="section-number selfRef">1.1. </a><a href="#name-goals" class="section-name selfRef">Goals</a>
+        </h3>
+<p id="section-1.1-1">This document has four goals:<a href="#section-1.1-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-1.1-2">
+<li id="section-1.1-2.1">
+            <p id="section-1.1-2.1.1">define MoQT-native scopes and terminology for measurements;<a href="#section-1.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-1.1-2.2">
+            <p id="section-1.1-2.2.1">identify a small interoperable set of metrics with explicit type, unit, and
+aggregation semantics;<a href="#section-1.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-1.1-2.3">
+            <p id="section-1.1-2.3.1">provide practical mappings from statistics that endpoint implementations
+commonly expose today; and<a href="#section-1.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-1.1-2.4">
+            <p id="section-1.1-2.4.1">allow the same metric semantics to be carried through different MoQT
+packaging and reporting mechanisms.<a href="#section-1.1-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+</section>
+</div>
+<div id="non-goals">
+<section id="section-1.2">
+        <h3 id="name-non-goals">
+<a href="#section-1.2" class="section-number selfRef">1.2. </a><a href="#name-non-goals" class="section-name selfRef">Non-Goals</a>
+        </h3>
+<p id="section-1.2-1">This document does not require a node to expose every metric. It distinguishes
+metrics that are directly observable at the MoQT or QUIC layer from metrics that
+require a media pipeline, decoder, renderer, or application-specific deadline.<a href="#section-1.2-1" class="pilcrow">¶</a></p>
+<p id="section-1.2-2">This document does not define a wire encoding for metric reports, an alternate
+reporting destination, or relay forwarding behavior for reports. These are left
+to carriage documents (see <a href="#carriage" class="auto internal xref">Section 7</a>).<a href="#section-1.2-2" class="pilcrow">¶</a></p>
+<p id="section-1.2-3">CMCD <span>[<a href="#CMCD" class="cite xref">CMCD</a>]</span> and CMSD <span>[<a href="#CMSD" class="cite xref">CMSD</a>]</span> are treated as related HTTP adaptive-streaming
+vocabularies: their concepts inform the mapping of client QoE and server
+delivery metrics, while their HTTP carriage is not assumed by MoQT.<a href="#section-1.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="conventions-and-definitions">
+<section id="section-2">
+      <h2 id="name-conventions-and-definitions">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-conventions-and-definitions" class="section-name selfRef">Conventions and Definitions</a>
+      </h2>
+<p id="section-2-1">The key words "<span class="bcp14">MUST</span>", "<span class="bcp14">MUST NOT</span>", "<span class="bcp14">REQUIRED</span>", "<span class="bcp14">SHALL</span>", "<span class="bcp14">SHALL NOT</span>", "<span class="bcp14">SHOULD</span>", "<span class="bcp14">SHOULD NOT</span>", "<span class="bcp14">RECOMMENDED</span>", "<span class="bcp14">NOT RECOMMENDED</span>",
+"<span class="bcp14">MAY</span>", and "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
+described in BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when, they
+appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶</a></p>
+<p id="section-2-2">This document uses the following terms, in addition to those defined in
+<span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span>:<a href="#section-2-2" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-2-3">
+        <dt id="section-2-3.1">Publisher:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.2">
+          <p id="section-2-3.2.1">An endpoint that publishes a namespace or track and sends objects.<a href="#section-2-3.2.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.3">Subscriber:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.4">
+          <p id="section-2-3.4.1">An endpoint that subscribes to or fetches a track and receives objects.<a href="#section-2-3.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.5">Relay:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.6">
+          <p id="section-2-3.6.1">A MoQT intermediary that forwards or caches objects between sessions.<a href="#section-2-3.6.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.7">Reporter:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.8">
+          <p id="section-2-3.8.1">A publisher, subscriber, relay, or collector-side component that creates a
+measurement.<a href="#section-2-3.8.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.9">Collector:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.10">
+          <p id="section-2-3.10.1">A component that receives, stores, aggregates, or presents measurements.<a href="#section-2-3.10.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.11">Session:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.12">
+          <p id="section-2-3.12.1">One MoQT connection and its negotiated protocol state.<a href="#section-2-3.12.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.13">Link:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.14">
+          <p id="section-2-3.14.1">One directed observation path over a session, normally between two directly
+connected MoQT nodes.<a href="#section-2-3.14.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.15">Namespace:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.16">
+          <p id="section-2-3.16.1">A MoQT track namespace.<a href="#section-2-3.16.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.17">Track:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.18">
+          <p id="section-2-3.18.1">A MoQT track identified by a namespace and track name.<a href="#section-2-3.18.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.19">Group:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.20">
+          <p id="section-2-3.20.1">A sequence of objects with a common group identifier.<a href="#section-2-3.20.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.21">Object:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.22">
+          <p id="section-2-3.22.1">A MoQT delivery unit identified by a group and object identifier.<a href="#section-2-3.22.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.23">Delivery Mode:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.24">
+          <p id="section-2-3.24.1">The mechanism used to carry objects, such as a subgroup stream, a per-object
+stream, or a datagram.<a href="#section-2-3.24.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.25">QoE:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.26">
+          <p id="section-2-3.26.1">Application or playback observations that describe user-visible quality.
+QoE metrics are not inferred from transport measurements unless explicitly
+stated.<a href="#section-2-3.26.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+<p id="section-2-4">Metric names in this document use the <code>moq_</code> prefix and snake case.
+Implementations <span class="bcp14">MAY</span> expose equivalent names in another namespace, but a mapping
+to the names and semantics in this document is necessary for interoperability.<a href="#section-2-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="design-principles">
+<section id="section-3">
+      <h2 id="name-design-principles">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-design-principles" class="section-name selfRef">Design Principles</a>
+      </h2>
+<div id="layers">
+<section id="section-3.1">
+        <h3 id="name-measurement-layers">
+<a href="#section-3.1" class="section-number selfRef">3.1. </a><a href="#name-measurement-layers" class="section-name selfRef">Measurement Layers</a>
+        </h3>
+<p id="section-3.1-1">Measurements are divided into layers:<a href="#section-3.1-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-3.1-2">
+          <dt id="section-3.1-2.1">Application and request layer:</dt>
+          <dd style="margin-left: 1.5em" id="section-3.1-2.2">
+            <p id="section-3.1-2.2.1">Request outcomes, request latency, authorization results, and session
+lifecycle.<a href="#section-3.1-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-3.1-2.3">MoQT delivery layer:</dt>
+          <dd style="margin-left: 1.5em" id="section-3.1-2.4">
+            <p id="section-3.1-2.4.1">Object counts, bytes, group boundaries, delivery mode, object locations,
+stream outcomes, and subscription state.<a href="#section-3.1-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-3.1-2.5">QUIC transport layer:</dt>
+          <dd style="margin-left: 1.5em" id="section-3.1-2.6">
+            <p id="section-3.1-2.6.1">RTT, loss, congestion-control state, bytes, streams, flow control, and
+datagram state.<a href="#section-3.1-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-3.1-2.7">Media pipeline layer:</dt>
+          <dd style="margin-left: 1.5em" id="section-3.1-2.8">
+            <p id="section-3.1-2.8.1">Codec, encoded and decoded frames, frame rate, keyframes, decode time, render
+state, and playout buffer.<a href="#section-3.1-2.8.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-3.1-2.9">Playback and QoE layer:</dt>
+          <dd style="margin-left: 1.5em" id="section-3.1-2.10">
+            <p id="section-3.1-2.10.1">Startup, stalls, live latency, deadline headroom, dropped frames, and
+non-rendered content.<a href="#section-3.1-2.10.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-3.1-3">A metric <span class="bcp14">MUST</span> identify the layer at which it is measured or derived. A
+subscriber <span class="bcp14">MUST NOT</span> report an application-layer playback metric as if it were a
+QUIC or MoQT-layer observation.<a href="#section-3.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="observation-versus-interpretation">
+<section id="section-3.2">
+        <h3 id="name-observation-versus-interpre">
+<a href="#section-3.2" class="section-number selfRef">3.2. </a><a href="#name-observation-versus-interpre" class="section-name selfRef">Observation versus Interpretation</a>
+        </h3>
+<p id="section-3.2-1">A metric definition describes an observation and its unit. Implementations <span class="bcp14">MAY</span>
+derive higher-level indicators from multiple observations, but the derivation
+<span class="bcp14">SHOULD</span> be documented. For example, a receiver can report
+<code>moq_track_objects_received_total</code> from its MoQT object callback. It cannot
+infer <code>moq_sub_buffer_starvation_total</code> without a playback or rendering signal.<a href="#section-3.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="types">
+<section id="section-3.3">
+        <h3 id="name-metric-types">
+<a href="#section-3.3" class="section-number selfRef">3.3. </a><a href="#name-metric-types" class="section-name selfRef">Metric Types</a>
+        </h3>
+<span class="break"></span><dl class="dlParallel" id="section-3.3-1">
+          <dt id="section-3.3-1.1">Counter:</dt>
+          <dd style="margin-left: 1.5em" id="section-3.3-1.2">
+            <p id="section-3.3-1.2.1">A cumulative count that increases during a process lifetime and may reset when
+the reporting process restarts.<a href="#section-3.3-1.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-3.3-1.3">Gauge:</dt>
+          <dd style="margin-left: 1.5em" id="section-3.3-1.4">
+            <p id="section-3.3-1.4.1">A sampled value that may increase or decrease.<a href="#section-3.3-1.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-3.3-1.5">Histogram:</dt>
+          <dd style="margin-left: 1.5em" id="section-3.3-1.6">
+            <p id="section-3.3-1.6.1">A distribution of observations. A histogram has an observation unit and an
+aggregation policy; bucket boundaries are a collector or profile choice unless
+a metric definition specifies them.<a href="#section-3.3-1.6.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-3.3-2">An implementation exporting a counter <span class="bcp14">MUST</span> document reset behavior. A collector
+<span class="bcp14">MUST</span> use the reporter identity and process or session lifetime when interpreting
+counter resets.<a href="#section-3.3-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="moqt-observability-model">
+<section id="section-4">
+      <h2 id="name-moqt-observability-model">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-moqt-observability-model" class="section-name selfRef">MoQT Observability Model</a>
+      </h2>
+<div id="scopes">
+<section id="section-4.1">
+        <h3 id="name-scopes">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-scopes" class="section-name selfRef">Scopes</a>
+        </h3>
+<p id="section-4.1-1">A deployment can be viewed as the following hierarchy:<a href="#section-4.1-1" class="pilcrow">¶</a></p>
+<span id="name-observation-scopes"></span><figure id="figure-1">
+          <div class="alignLeft art-ascii-art art-text artwork" id="section-4.1-2.1">
+<pre>
+Deployment
+  -&gt; Relay Mesh
+    -&gt; Relay Node
+      -&gt; Link
+        -&gt; Namespace
+          -&gt; Track
+            -&gt; Group
+              -&gt; Object
+</pre>
+</div>
+<figcaption><a href="#figure-1" class="selfRef">Figure 1</a>:
+<a href="#name-observation-scopes" class="selfRef">Observation Scopes</a>
+          </figcaption></figure>
+<p id="section-4.1-3">This hierarchy describes possible scopes, not a requirement that every report
+contain every ancestor. A report <span class="bcp14">SHOULD</span> carry enough context for a collector to
+associate it with a deployment, node, session, namespace, or track according to
+local authorization policy.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
+<p id="section-4.1-4">The principal operational scope is normally the track. Group and object
+identifiers are useful for local correlation and debugging, but they are usually
+unsuitable as metric labels. Implementations <span class="bcp14">SHOULD</span> aggregate group- and
+object-level observations into counters or histograms and <span class="bcp14">SHOULD</span> avoid
+unbounded labels containing object identifiers.<a href="#section-4.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="reporter-perspective">
+<section id="section-4.2">
+        <h3 id="name-reporter-perspective">
+<a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-reporter-perspective" class="section-name selfRef">Reporter Perspective</a>
+        </h3>
+<p id="section-4.2-1">The same concept can differ by vantage point. For example:<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.2-2.1">
+            <p id="section-4.2-2.1.1">a publisher's sent bitrate is measured before or at publisher-side MoQT
+transmission;<a href="#section-4.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.2-2.2">
+            <p id="section-4.2-2.2.1">a relay's forwarded bitrate is measured on a particular link;<a href="#section-4.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.2-2.3">
+            <p id="section-4.2-2.3.1">a subscriber's received bitrate is measured after object admission at the
+receiving MoQT layer; and<a href="#section-4.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.2-2.4">
+            <p id="section-4.2-2.4.1">a player's rendered bitrate is measured after decode and playout selection.<a href="#section-4.2-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-4.2-3">Metric names <span class="bcp14">SHOULD</span> distinguish these perspectives through scope or an explicit
+reporter role. A receiver <span class="bcp14">MUST NOT</span> use a publisher-side name for a
+subscriber-side measurement merely because both values are expressed in the
+same unit.<a href="#section-4.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="labels">
+<section id="section-4.3">
+        <h3 id="name-labels-and-cardinality">
+<a href="#section-4.3" class="section-number selfRef">4.3. </a><a href="#name-labels-and-cardinality" class="section-name selfRef">Labels and Cardinality</a>
+        </h3>
+<p id="section-4.3-1">Labels are dimensions of a time series, not a replacement for report scope.
+Implementations <span class="bcp14">SHOULD</span> prefer a bounded label set such as:<a href="#section-4.3-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.3-2.1">
+            <p id="section-4.3-2.1.1"><code>role</code>: <code>publisher</code>, <code>subscriber</code>, <code>relay</code>, or <code>collector</code>;<a href="#section-4.3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.3-2.2">
+            <p id="section-4.3-2.2.1"><code>direction</code>: <code>upstream</code> or <code>downstream</code>;<a href="#section-4.3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.3-2.3">
+            <p id="section-4.3-2.3.1"><code>result</code>: a stable result class and, where useful, a protocol error class;<a href="#section-4.3-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.3-2.4">
+            <p id="section-4.3-2.4.1"><code>delivery_mode</code>: <code>subgroup</code>, <code>stream</code>, or <code>datagram</code>;<a href="#section-4.3-2.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.3-2.5">
+            <p id="section-4.3-2.5.1"><code>version</code>: the negotiated MoQT version or protocol profile; and<a href="#section-4.3-2.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.3-2.6">
+            <p id="section-4.3-2.6.1">a deployment-controlled relay or link identifier.<a href="#section-4.3-2.6.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-4.3-3">Namespace and track labels <span class="bcp14">MAY</span> be used where their cardinality and privacy
+impact are acceptable. Implementations <span class="bcp14">SHOULD NOT</span> use raw object identifiers,
+request identifiers, subscriber identities, or unconstrained URLs as labels in
+fleet-wide time series. Such values <span class="bcp14">MAY</span> appear in a bounded diagnostic report
+or trace event when authorized.<a href="#section-4.3-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="registry">
+<section id="section-5">
+      <h2 id="name-metric-registry">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-metric-registry" class="section-name selfRef">Metric Registry</a>
+      </h2>
+<p id="section-5-1">This section defines a starter set of metrics. Each entry has a name, type,
+unit, scope, and description.<a href="#section-5-1" class="pilcrow">¶</a></p>
+<p id="section-5-2">An implementation <span class="bcp14">MAY</span> omit a metric when the observation is unavailable, but
+<span class="bcp14">MUST NOT</span> emit a value that it cannot measure or derive as specified.<a href="#section-5-2" class="pilcrow">¶</a></p>
+<div id="session-and-request-metrics">
+<section id="section-5.1">
+        <h3 id="name-session-and-request-metrics">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-session-and-request-metrics" class="section-name selfRef">Session and Request Metrics</a>
+        </h3>
+<span class="break"></span><dl class="dlParallel" id="section-5.1-1">
+          <dt id="section-5.1-1.1">
+<code>moq_sessions_active</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.1-1.2">
+            <p id="section-5.1-1.2.1">Gauge. Unit: sessions. Scope: node. Active MoQT sessions.<a href="#section-5.1-1.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.1-1.3">
+<code>moq_session_duration_seconds</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.1-1.4">
+            <p id="section-5.1-1.4.1">Histogram. Unit: seconds. Scope: session. Duration of completed sessions.<a href="#section-5.1-1.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.1-1.5">
+<code>moq_requests_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.1-1.6">
+            <p id="section-5.1-1.6.1">Counter. Unit: requests. Scope: node, session. Requests by request kind and result class.<a href="#section-5.1-1.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.1-1.7">
+<code>moq_request_duration_seconds</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.1-1.8">
+            <p id="section-5.1-1.8.1">Histogram. Unit: seconds. Scope: request kind. Time from request creation to terminal response.<a href="#section-5.1-1.8.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.1-1.9">
+<code>moq_request_errors_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.1-1.10">
+            <p id="section-5.1-1.10.1">Counter. Unit: errors. Scope: request kind. Requests ending in an error, optionally classified by stable error class.<a href="#section-5.1-1.10.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.1-1.11">
+<code>moq_subscriptions_active</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.1-1.12">
+            <p id="section-5.1-1.12.1">Gauge. Unit: subscriptions. Scope: node, namespace, track. Active subscriptions at the reporting node.<a href="#section-5.1-1.12.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.1-1.13">
+<code>moq_fetches_active</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.1-1.14">
+            <p id="section-5.1-1.14.1">Gauge. Unit: fetches. Scope: node, namespace, track. Active FETCH operations at the reporting node.<a href="#section-5.1-1.14.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-5.1-2">The request kind <span class="bcp14">SHOULD</span> be one of <code>subscribe</code>, <code>fetch</code>, <code>publish</code>,
+<code>publish_namespace</code>, <code>subscribe_namespace</code>, <code>track_status</code>, or an extension
+defined by the relevant protocol document.<a href="#section-5.1-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="link-and-quic-metrics">
+<section id="section-5.2">
+        <h3 id="name-link-and-quic-metrics">
+<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-link-and-quic-metrics" class="section-name selfRef">Link and QUIC Metrics</a>
+        </h3>
+<span class="break"></span><dl class="dlParallel" id="section-5.2-1">
+          <dt id="section-5.2-1.1">
+<code>moq_link_rtt_seconds</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.2-1.2">
+            <p id="section-5.2-1.2.1">Gauge or histogram. Unit: seconds. Scope: link. Smoothed or sampled round-trip time, with the chosen QUIC statistic identified.<a href="#section-5.2-1.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.2-1.3">
+<code>moq_link_available_bitrate_bps</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.2-1.4">
+            <p id="section-5.2-1.4.1">Gauge. Unit: bits/s. Scope: link. Estimated available bitrate, when exposed by the transport or media stack.<a href="#section-5.2-1.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.2-1.5">
+<code>moq_link_packet_loss_ratio</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.2-1.6">
+            <p id="section-5.2-1.6.1">Gauge. Unit: ratio. Scope: link. Packet loss ratio over a defined observation interval.<a href="#section-5.2-1.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.2-1.7">
+<code>moq_link_bytes_sent_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.2-1.8">
+            <p id="section-5.2-1.8.1">Counter. Unit: bytes. Scope: link. Bytes submitted to the transport in the reporting direction.<a href="#section-5.2-1.8.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.2-1.9">
+<code>moq_link_bytes_received_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.2-1.10">
+            <p id="section-5.2-1.10.1">Counter. Unit: bytes. Scope: link. Bytes admitted from the transport in the reporting direction.<a href="#section-5.2-1.10.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.2-1.11">
+<code>moq_link_streams_active</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.2-1.12">
+            <p id="section-5.2-1.12.1">Gauge. Unit: streams. Scope: link. Active MoQT or QUIC streams, with stream class if bounded.<a href="#section-5.2-1.12.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.2-1.13">
+<code>moq_link_datagrams_sent_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.2-1.14">
+            <p id="section-5.2-1.14.1">Counter. Unit: datagrams. Scope: link. Datagrams submitted.<a href="#section-5.2-1.14.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.2-1.15">
+<code>moq_link_datagrams_lost_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.2-1.16">
+            <p id="section-5.2-1.16.1">Counter. Unit: datagrams. Scope: link. Datagrams inferred or reported as lost.<a href="#section-5.2-1.16.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.2-1.17">
+<code>moq_link_congestion_blocked_seconds_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.2-1.18">
+            <p id="section-5.2-1.18.1">Counter. Unit: seconds. Scope: link. Time during which application writes were blocked by the transport or configured send budget.<a href="#section-5.2-1.18.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.2-1.19">
+<code>moq_link_cwnd_bytes</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.2-1.20">
+            <p id="section-5.2-1.20.1">Gauge. Unit: bytes. Scope: link. Congestion window, only when exposed by the transport implementation.<a href="#section-5.2-1.20.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.2-1.21">
+<code>moq_link_flow_control_blocked_seconds_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.2-1.22">
+            <p id="section-5.2-1.22.1">Counter. Unit: seconds. Scope: link. Time blocked by flow-control limits, distinct from congestion-control blocking where distinguishable.<a href="#section-5.2-1.22.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-5.2-2">QUIC measurements are implementation-specific unless a QUIC specification such
+as <span>[<a href="#RFC9000" class="cite xref">RFC9000</a>]</span> or <span>[<a href="#RFC9002" class="cite xref">RFC9002</a>]</span> defines the statistic. An implementation <span class="bcp14">SHOULD</span>
+identify whether a value comes from QUIC recovery, a transport binding, or an
+application-side observation.<a href="#section-5.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="moqt-delivery-metrics">
+<section id="section-5.3">
+        <h3 id="name-moqt-delivery-metrics">
+<a href="#section-5.3" class="section-number selfRef">5.3. </a><a href="#name-moqt-delivery-metrics" class="section-name selfRef">MoQT Delivery Metrics</a>
+        </h3>
+<span class="break"></span><dl class="dlParallel" id="section-5.3-1">
+          <dt id="section-5.3-1.1">
+<code>moq_track_objects_sent_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.3-1.2">
+            <p id="section-5.3-1.2.1">Counter. Unit: objects. Scope: track, link. Objects submitted for transmission.<a href="#section-5.3-1.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.3-1.3">
+<code>moq_track_objects_received_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.3-1.4">
+            <p id="section-5.3-1.4.1">Counter. Unit: objects. Scope: track, link. Objects admitted at the receiving MoQT layer.<a href="#section-5.3-1.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.3-1.5">
+<code>moq_track_objects_dropped_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.3-1.6">
+            <p id="section-5.3-1.6.1">Counter. Unit: objects. Scope: track, link. Objects discarded by a configured local policy, with the policy distinguished from transport loss where possible.<a href="#section-5.3-1.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.3-1.7">
+<code>moq_track_bytes_sent_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.3-1.8">
+            <p id="section-5.3-1.8.1">Counter. Unit: bytes. Scope: track, link. Object payload or object wire bytes sent, with the counted convention documented.<a href="#section-5.3-1.8.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.3-1.9">
+<code>moq_track_bytes_received_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.3-1.10">
+            <p id="section-5.3-1.10.1">Counter. Unit: bytes. Scope: track, link. Object payload or object wire bytes received, with the counted convention documented.<a href="#section-5.3-1.10.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.3-1.11">
+<code>moq_track_delivery_latency_seconds</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.3-1.12">
+            <p id="section-5.3-1.12.1">Histogram. Unit: seconds. Scope: track, link. Sender-to-receiver latency when an object timestamp or synchronized measurement makes it meaningful.<a href="#section-5.3-1.12.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.3-1.13">
+<code>moq_track_object_interarrival_seconds</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.3-1.14">
+            <p id="section-5.3-1.14.1">Histogram. Unit: seconds. Scope: track. Inter-arrival interval of admitted objects.<a href="#section-5.3-1.14.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.3-1.15">
+<code>moq_track_groups_completed_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.3-1.16">
+            <p id="section-5.3-1.16.1">Counter. Unit: groups. Scope: track. Groups observed or completed according to the local delivery rule.<a href="#section-5.3-1.16.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.3-1.17">
+<code>moq_track_group_duration_seconds</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.3-1.18">
+            <p id="section-5.3-1.18.1">Histogram. Unit: seconds. Scope: track. Time span between the first and last object in a group, when defined.<a href="#section-5.3-1.18.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.3-1.19">
+<code>moq_track_delivery_mode</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.3-1.20">
+            <p id="section-5.3-1.20.1">Enumerated attribute. Scope: track. Delivery mode used by the track or subscription.<a href="#section-5.3-1.20.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.3-1.21">
+<code>moq_track_priority</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.3-1.22">
+            <p id="section-5.3-1.22.1">Gauge. Unit: priority value. Scope: track, link. MoQT priority value applied to the relevant request or delivery.<a href="#section-5.3-1.22.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.3-1.23">
+<code>moq_subscription_objects_late_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.3-1.24">
+            <p id="section-5.3-1.24.1">Counter. Unit: objects. Scope: subscription. Objects arriving after an application-defined deadline.<a href="#section-5.3-1.24.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.3-1.25">
+<code>moq_subscription_objects_lost_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.3-1.26">
+            <p id="section-5.3-1.26.1">Counter. Unit: objects. Scope: subscription. Objects classified as not received or otherwise unavailable.<a href="#section-5.3-1.26.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.3-1.27">
+<code>moq_subscription_repair_requests_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.3-1.28">
+            <p id="section-5.3-1.28.1">Counter. Unit: requests. Scope: subscription. FETCH or equivalent repair requests issued for the subscription.<a href="#section-5.3-1.28.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-5.3-2">The definitions of "sent", "received", "dropped", and "lost" <span class="bcp14">MUST</span> identify the
+observation point. A receiver <span class="bcp14">MUST NOT</span> count a missing object as lost solely
+because it has not yet reached a report deadline.<a href="#section-5.3-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="media-and-subscriber-qoe-metrics">
+<section id="section-5.4">
+        <h3 id="name-media-and-subscriber-qoe-me">
+<a href="#section-5.4" class="section-number selfRef">5.4. </a><a href="#name-media-and-subscriber-qoe-me" class="section-name selfRef">Media and Subscriber QoE Metrics</a>
+        </h3>
+<p id="section-5.4-1">These metrics require a media pipeline, decoder, renderer, or
+application-specific playback model. They cannot be produced by a generic MoQT
+transport alone.<a href="#section-5.4-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-5.4-2">
+          <dt id="section-5.4-2.1">
+<code>moq_media_encoded_bitrate_bps</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.4-2.2">
+            <p id="section-5.4-2.2.1">Gauge. Unit: bits/s. Scope: publisher, track. Encoded media bitrate.<a href="#section-5.4-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.4-2.3">
+<code>moq_media_received_bitrate_bps</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.4-2.4">
+            <p id="section-5.4-2.4.1">Gauge. Unit: bits/s. Scope: subscriber, track. Media bytes received over a defined interval.<a href="#section-5.4-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.4-2.5">
+<code>moq_media_frame_rate_fps</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.4-2.6">
+            <p id="section-5.4-2.6.1">Gauge. Unit: frames/s. Scope: track. Encoded, decoded, or rendered frame rate; the stage <span class="bcp14">MUST</span> be stated.<a href="#section-5.4-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.4-2.7">
+<code>moq_media_frames_encoded_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.4-2.8">
+            <p id="section-5.4-2.8.1">Counter. Unit: frames. Scope: publisher, track. Frames encoded by the media pipeline.<a href="#section-5.4-2.8.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.4-2.9">
+<code>moq_media_frames_decoded_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.4-2.10">
+            <p id="section-5.4-2.10.1">Counter. Unit: frames. Scope: subscriber, track. Frames decoded by the media pipeline.<a href="#section-5.4-2.10.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.4-2.11">
+<code>moq_media_keyframes_encoded_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.4-2.12">
+            <p id="section-5.4-2.12.1">Counter. Unit: frames. Scope: publisher, track. Keyframes or random-access frames encoded.<a href="#section-5.4-2.12.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.4-2.13">
+<code>moq_media_keyframe_interval_seconds</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.4-2.14">
+            <p id="section-5.4-2.14.1">Gauge or histogram. Unit: seconds. Scope: track. Interval between keyframes or random-access points.<a href="#section-5.4-2.14.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.4-2.15">
+<code>moq_media_codec</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.4-2.16">
+            <p id="section-5.4-2.16.1">Enumerated attribute. Scope: track. Codec and profile at the media pipeline boundary.<a href="#section-5.4-2.16.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.4-2.17">
+<code>moq_media_jitter_seconds</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.4-2.18">
+            <p id="section-5.4-2.18.1">Gauge or histogram. Unit: seconds. Scope: subscriber, track. Media-pipeline jitter; distinct from MoQT object inter-arrival jitter.<a href="#section-5.4-2.18.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.4-2.19">
+<code>moq_media_decode_time_seconds</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.4-2.20">
+            <p id="section-5.4-2.20.1">Histogram. Unit: seconds. Scope: subscriber, track. Time spent decoding media samples or frames.<a href="#section-5.4-2.20.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.4-2.21">
+<code>moq_sub_buffer_level_seconds</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.4-2.22">
+            <p id="section-5.4-2.22.1">Gauge. Unit: seconds. Scope: subscriber, track. Forward buffer or playout buffer level, according to the application definition.<a href="#section-5.4-2.22.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.4-2.23">
+<code>moq_sub_buffer_starvation_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.4-2.24">
+            <p id="section-5.4-2.24.1">Counter. Unit: events. Scope: subscriber, track. Buffer starvation or rebuffering events.<a href="#section-5.4-2.24.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.4-2.25">
+<code>moq_sub_startup_delay_seconds</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.4-2.26">
+            <p id="section-5.4-2.26.1">Histogram. Unit: seconds. Scope: subscriber, track. Time from the selected startup event to first usable or rendered media.<a href="#section-5.4-2.26.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.4-2.27">
+<code>moq_sub_live_latency_seconds</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.4-2.28">
+            <p id="section-5.4-2.28.1">Gauge or histogram. Unit: seconds. Scope: subscriber, track. End-to-end live latency, requiring an agreed clock or timeline.<a href="#section-5.4-2.28.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.4-2.29">
+<code>moq_sub_deadline_seconds</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.4-2.30">
+            <p id="section-5.4-2.30.1">Gauge. Unit: seconds. Scope: subscriber, track. Application-defined time until the next playback deadline.<a href="#section-5.4-2.30.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.4-2.31">
+<code>moq_sub_dropped_frames_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.4-2.32">
+            <p id="section-5.4-2.32.1">Counter. Unit: frames. Scope: subscriber, track. Frames dropped by the media pipeline or renderer.<a href="#section-5.4-2.32.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.4-2.33">
+<code>moq_sub_non_rendered_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.4-2.34">
+            <p id="section-5.4-2.34.1">Counter. Unit: objects or frames. Scope: subscriber, track. Media received or decoded but not rendered, with the cause classified where possible.<a href="#section-5.4-2.34.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.4-2.35">
+<code>moq_sub_playout_ahead_seconds</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.4-2.36">
+            <p id="section-5.4-2.36.1">Gauge. Unit: seconds. Scope: subscriber, track. Time remaining before the playout buffer is exhausted.<a href="#section-5.4-2.36.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="relay-and-resource-metrics">
+<section id="section-5.5">
+        <h3 id="name-relay-and-resource-metrics">
+<a href="#section-5.5" class="section-number selfRef">5.5. </a><a href="#name-relay-and-resource-metrics" class="section-name selfRef">Relay and Resource Metrics</a>
+        </h3>
+<span class="break"></span><dl class="dlParallel" id="section-5.5-1">
+          <dt id="section-5.5-1.1">
+<code>moq_relay_request_processing_seconds</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.5-1.2">
+            <p id="section-5.5-1.2.1">Histogram. Unit: seconds. Scope: relay, request kind. Relay processing time excluding downstream transport delay where measurable.<a href="#section-5.5-1.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.5-1.3">
+<code>moq_relay_held_seconds</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.5-1.4">
+            <p id="section-5.5-1.4.1">Histogram. Unit: seconds. Scope: relay, request kind. Time a request or object was held by a relay policy or queue.<a href="#section-5.5-1.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.5-1.5">
+<code>moq_relay_object_availability_seconds</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.5-1.6">
+            <p id="section-5.5-1.6.1">Histogram. Unit: seconds. Scope: relay, track. Time between object availability at the relay and the relay's forwarding decision or admission.<a href="#section-5.5-1.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.5-1.7">
+<code>moq_relay_cache_hits_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.5-1.8">
+            <p id="section-5.5-1.8.1">Counter. Unit: objects or groups. Scope: relay, track. Cache hits, with the cache lookup unit specified.<a href="#section-5.5-1.8.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.5-1.9">
+<code>moq_relay_cache_misses_total</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.5-1.10">
+            <p id="section-5.5-1.10.1">Counter. Unit: objects or groups. Scope: relay, track. Cache misses.<a href="#section-5.5-1.10.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.5-1.11">
+<code>moq_relay_duress</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.5-1.12">
+            <p id="section-5.5-1.12.1">Gauge. Unit: boolean or ratio. Scope: relay. Relay load or duress indicator; the definition <span class="bcp14">MUST</span> be deployment-specific and documented.<a href="#section-5.5-1.12.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.5-1.13">
+<code>moq_relay_suggested_bitrate_bps</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.5-1.14">
+            <p id="section-5.5-1.14.1">Gauge. Unit: bits/s. Scope: relay, track. A relay-originated bitrate recommendation, if a companion control mechanism defines one.<a href="#section-5.5-1.14.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+<div id="report">
+<section id="section-6">
+      <h2 id="name-report-data-model">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-report-data-model" class="section-name selfRef">Report Data Model</a>
+      </h2>
+<p id="section-6-1">A metrics export <span class="bcp14">MAY</span> represent a single sample, a batch of samples, or a time
+series. When a structured report is used, the following conceptual fields are
+<span class="bcp14">RECOMMENDED</span>:<a href="#section-6-1" class="pilcrow">¶</a></p>
+<span id="name-conceptual-report-structure"></span><figure id="figure-2">
+        <div class="lang-pseudocode sourcecode" id="section-6-2.1">
+<pre>
+MetricReport {
+  report_time   : timestamp,
+  reporter_id   : opaque identifier,
+  reporter_role : publisher | subscriber | relay | collector,
+  session_id    : opaque identifier (optional),
+  scope         : deployment | relay | link | session | namespace |
+                  track | subscription,
+  scope_id      : opaque identifier,
+  samples       : [MetricSample],
+  sequence      : unsigned integer (optional),
+  expires       : timestamp or duration (optional)
+}
+
+MetricSample {
+  name          : registered metric name,
+  type          : counter | gauge | histogram,
+  unit          : registered unit,
+  value         : typed metric value,
+  attributes    : bounded key/value set (optional),
+  interval      : observation interval (optional),
+  source        : observation layer or source (optional)
+}
+</pre>
+</div>
+<figcaption><a href="#figure-2" class="selfRef">Figure 2</a>:
+<a href="#name-conceptual-report-structure" class="selfRef">Conceptual Report Structure</a>
+        </figcaption></figure>
+<p id="section-6-3">The structured model is intentionally conceptual. A carriage document <span class="bcp14">MAY</span> use a
+binary, JSON, CBOR, catalog-defined, or metrics-system-native encoding. It <span class="bcp14">MUST</span>
+define how metric type, unit, timestamp, reset, and observation interval are
+represented.<a href="#section-6-3" class="pilcrow">¶</a></p>
+<p id="section-6-4">Unknown metric names <span class="bcp14">MAY</span> be ignored. Unknown fields in an extensible report
+<span class="bcp14">SHOULD</span> be ignored unless the carriage document specifies a stricter rule. A
+receiver <span class="bcp14">SHOULD</span> preserve unknown samples when forwarding an opaque report.<a href="#section-6-4" class="pilcrow">¶</a></p>
+<p id="section-6-5">This document does not define a destination URI or relay forwarding behavior
+for reports. A carriage or authorization document that permits a report to
+leave the delivery path <span class="bcp14">MUST</span> define destination authorization, loop prevention,
+replay handling, and privacy requirements. Those semantics cannot be inferred
+from a report field alone.<a href="#section-6-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="carriage">
+<section id="section-7">
+      <h2 id="name-carriage-and-integration">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-carriage-and-integration" class="section-name selfRef">Carriage and Integration</a>
+      </h2>
+<div id="metrics-tracks-and-msf">
+<section id="section-7.1">
+        <h3 id="name-metrics-tracks-and-msf">
+<a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-metrics-tracks-and-msf" class="section-name selfRef">Metrics Tracks and MSF</a>
+        </h3>
+<p id="section-7.1-1">MSF <span>[<a href="#MSF" class="cite xref">MSF</a>]</span> defines catalog and track conventions for logs and metrics tracks,
+including a packaging value and a resource-oriented metrics payload derived from
+<span>[<a href="#MOQMETRICS" class="cite xref">MOQMETRICS</a>]</span>. This document does not replace that payload. A future revision
+<span class="bcp14">MAY</span> define a profile or mapping that carries this registry in an MSF metrics
+track.<a href="#section-7.1-1" class="pilcrow">¶</a></p>
+<p id="section-7.1-2">An implementation using an MSF metrics track <span class="bcp14">SHOULD</span> identify:<a href="#section-7.1-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7.1-3.1">
+            <p id="section-7.1-3.1.1">the associated media or session scope;<a href="#section-7.1-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.1-3.2">
+            <p id="section-7.1-3.2.1">the reporter role and reporting direction;<a href="#section-7.1-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.1-3.3">
+            <p id="section-7.1-3.3.1">whether the payload is a registry sample, a time series, or a feedback report;
+and<a href="#section-7.1-3.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.1-3.4">
+            <p id="section-7.1-3.4.1">the lifetime, authorization, and intended collector of the metrics track.<a href="#section-7.1-3.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="feedback-tracks">
+<section id="section-7.2">
+        <h3 id="name-feedback-tracks">
+<a href="#section-7.2" class="section-number selfRef">7.2. </a><a href="#name-feedback-tracks" class="section-name selfRef">Feedback Tracks</a>
+        </h3>
+<p id="section-7.2-1">A feedback track is a reporting mechanism, not a complete metrics ontology. For
+example, <span>[<a href="#MOQFEEDBACK" class="cite xref">MOQFEEDBACK</a>]</span> defines per-object delivery statuses and summary
+metrics carried in feedback tracks. The registry in this document can provide
+names and semantics for optional summary fields, but it <span class="bcp14">MUST NOT</span> be used to
+redefine a feedback track's lifecycle, routing, or per-object encoding.<a href="#section-7.2-1" class="pilcrow">¶</a></p>
+<p id="section-7.2-2">A feedback report <span class="bcp14">SHOULD</span> distinguish:<a href="#section-7.2-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7.2-3.1">
+            <p id="section-7.2-3.1.1">transport feedback used by congestion control;<a href="#section-7.2-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.2-3.2">
+            <p id="section-7.2-3.2.1">MoQT delivery feedback used by a publisher or relay; and<a href="#section-7.2-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.2-3.3">
+            <p id="section-7.2-3.3.1">application or playback feedback used by an encoder, agent, or player.<a href="#section-7.2-3.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="event-timeline-and-packaging-specific-tracks">
+<section id="section-7.3">
+        <h3 id="name-event-timeline-and-packagin">
+<a href="#section-7.3" class="section-number selfRef">7.3. </a><a href="#name-event-timeline-and-packagin" class="section-name selfRef">Event Timeline and Packaging-Specific Tracks</a>
+        </h3>
+<p id="section-7.3-1">MSF Event Timeline tracks provide a carrier for event-oriented telemetry, such
+as CMCD reports. An Event Timeline payload identifies its own event type and
+indexing rules. This document defines reusable metric semantics; it does not
+require all events to be converted into scalar metrics.<a href="#section-7.3-1" class="pilcrow">¶</a></p>
+<p id="section-7.3-2">LOC <span>[<a href="#LOC" class="cite xref">LOC</a>]</span> and CMSF <span>[<a href="#CMSF" class="cite xref">CMSF</a>]</span> <span class="bcp14">MAY</span> define packaging-specific metrics. Such
+metrics <span class="bcp14">SHOULD</span> follow the scope, type, unit, and cardinality principles of this
+document where applicable, and <span class="bcp14">SHOULD</span> identify packaging-specific dependencies.
+A CMAF or LOC metric <span class="bcp14">MUST NOT</span> be presented as a transport metric when its
+observation requires parsing media samples or container boxes.<a href="#section-7.3-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="export-formats">
+<section id="section-7.4">
+        <h3 id="name-export-formats">
+<a href="#section-7.4" class="section-number selfRef">7.4. </a><a href="#name-export-formats" class="section-name selfRef">Export Formats</a>
+        </h3>
+<p id="section-7.4-1">An implementation <span class="bcp14">MAY</span> export the registry through OpenMetrics <span>[<a href="#OPENMETRICS" class="cite xref">OPENMETRICS</a>]</span>,
+OpenTelemetry <span>[<a href="#OTEL" class="cite xref">OTEL</a>]</span>, qlog <span>[<a href="#MOQ-QLOG" class="cite xref">MOQ-QLOG</a>]</span>, or another monitoring system. qlog is
+particularly appropriate for event traces and protocol correlation; it is not a
+substitute for a low-cardinality time-series registry. OpenMetrics and
+OpenTelemetry are appropriate references for metric types, attributes,
+temporality, and export, but this document remains responsible for
+MoQT-specific scope and semantics.<a href="#section-7.4-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="mappings-from-existing-vocabularies">
+<section id="section-8">
+      <h2 id="name-mappings-from-existing-voca">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-mappings-from-existing-voca" class="section-name selfRef">Mappings from Existing Vocabularies</a>
+      </h2>
+<div id="webrtc-statistics">
+<section id="section-8.1">
+        <h3 id="name-webrtc-statistics">
+<a href="#section-8.1" class="section-number selfRef">8.1. </a><a href="#name-webrtc-statistics" class="section-name selfRef">WebRTC Statistics</a>
+        </h3>
+<p id="section-8.1-1">Many WebRTC-based endpoints can obtain statistics through
+<code>RTCPeerConnection.getStats()</code>, which returns an <code>RTCStatsReport</code>
+          <span>[<a href="#WEBRTC-STATS" class="cite xref">WEBRTC-STATS</a>]</span>. The presence and quality of a statistic depend on the
+endpoint, browser, media pipeline, and codec. A MoQT implementation <span class="bcp14">MUST NOT</span>
+claim that a corresponding WebRTC statistic exists when it has not been
+collected at the relevant boundary.<a href="#section-8.1-1" class="pilcrow">¶</a></p>
+<p id="section-8.1-2">The following mappings are informative starting points:<a href="#section-8.1-2" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-8.1-3">
+          <dt id="section-8.1-3.1">
+<code>outbound-rtp.bytesSent</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-8.1-3.2">
+            <p id="section-8.1-3.2.1">Maps to <code>moq_media_encoded_bitrate_bps</code>. Derive a rate over an interval; identify whether bytes are encoded media or include packet overhead.<a href="#section-8.1-3.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-8.1-3.3">
+<code>outbound-rtp.framesPerSecond</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-8.1-3.4">
+            <p id="section-8.1-3.4.1">Maps to <code>moq_media_frame_rate_fps</code>. Identify the encoded or sent stage.<a href="#section-8.1-3.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-8.1-3.5">
+<code>outbound-rtp.framesEncoded</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-8.1-3.6">
+            <p id="section-8.1-3.6.1">Maps to <code>moq_media_frames_encoded_total</code>. Media metric; not a MoQT object count.<a href="#section-8.1-3.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-8.1-3.7">
+<code>outbound-rtp.keyFramesEncoded</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-8.1-3.8">
+            <p id="section-8.1-3.8.1">Maps to <code>moq_media_keyframes_encoded_total</code>. Useful for random-access behavior when present.<a href="#section-8.1-3.8.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-8.1-3.9">
+<code>inbound-rtp.bytesReceived</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-8.1-3.10">
+            <p id="section-8.1-3.10.1">Maps to <code>moq_media_received_bitrate_bps</code>. Derive a rate and distinguish media bytes from transport bytes.<a href="#section-8.1-3.10.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-8.1-3.11">
+<code>inbound-rtp.jitter</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-8.1-3.12">
+            <p id="section-8.1-3.12.1">Maps to <code>moq_media_jitter_seconds</code>. RTP jitter is not equivalent to MoQT object inter-arrival jitter.<a href="#section-8.1-3.12.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-8.1-3.13">
+<code>inbound-rtp.framesDecoded</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-8.1-3.14">
+            <p id="section-8.1-3.14.1">Maps to <code>moq_media_frames_decoded_total</code>. Decoder observation.<a href="#section-8.1-3.14.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-8.1-3.15">
+<code>inbound-rtp.framesDropped</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-8.1-3.16">
+            <p id="section-8.1-3.16.1">Maps to <code>moq_sub_dropped_frames_total</code>. Dropped-frame semantics depend on the implementation.<a href="#section-8.1-3.16.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-8.1-3.17">
+<code>inbound-rtp.totalDecodeTime</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-8.1-3.18">
+            <p id="section-8.1-3.18.1">Maps to <code>moq_media_decode_time_seconds</code>. Report cumulatively or derive a histogram according to the exporter.<a href="#section-8.1-3.18.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-8.1-3.19">
+<code>codec.mimeType</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-8.1-3.20">
+            <p id="section-8.1-3.20.1">Maps to <code>moq_media_codec</code>. Codec metadata, not a numeric metric.<a href="#section-8.1-3.20.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-8.1-3.21">
+<code>candidate-pair.currentRoundTripTime</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-8.1-3.22">
+            <p id="section-8.1-3.22.1">Maps to <code>moq_link_rtt_seconds</code>. Candidate-pair RTT is not necessarily the same as MoQT application RTT.<a href="#section-8.1-3.22.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-8.1-3.23">
+<code>candidate-pair.availableOutgoingBitrate</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-8.1-3.24">
+            <p id="section-8.1-3.24.1">Maps to <code>moq_link_available_bitrate_bps</code>. An estimate, not an achieved media bitrate.<a href="#section-8.1-3.24.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-8.1-3.25">
+<code>candidate-pair.bytesSent</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-8.1-3.26">
+            <p id="section-8.1-3.26.1">Maps to <code>moq_link_bytes_sent_total</code>. Transport-path observation where available.<a href="#section-8.1-3.26.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-8.1-3.27">
+<code>candidate-pair.bytesReceived</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-8.1-3.28">
+            <p id="section-8.1-3.28.1">Maps to <code>moq_link_bytes_received_total</code>. Transport-path observation where available.<a href="#section-8.1-3.28.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-8.1-3.29">
+<code>transport</code> or <code>candidate-pair</code> state:</dt>
+          <dd style="margin-left: 1.5em" id="section-8.1-3.30">
+            <p id="section-8.1-3.30.1">Maps to link or session state attributes. State names <span class="bcp14">MUST</span> retain their source semantics.<a href="#section-8.1-3.30.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-8.1-4">Metric names <span class="bcp14">SHOULD NOT</span> imply an exact equivalence between RTP packet metrics
+and MoQT object metrics. A media endpoint can export both families when it has
+both observations.<a href="#section-8.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="cmcd-and-cmsd">
+<section id="section-8.2">
+        <h3 id="name-cmcd-and-cmsd">
+<a href="#section-8.2" class="section-number selfRef">8.2. </a><a href="#name-cmcd-and-cmsd" class="section-name selfRef">CMCD and CMSD</a>
+        </h3>
+<p id="section-8.2-1">Common Media Client Data <span>[<a href="#CMCD" class="cite xref">CMCD</a>]</span> describes client-side playback and delivery
+context in HTTP adaptive streaming. Common Media Server Data <span>[<a href="#CMSD" class="cite xref">CMSD</a>]</span> describes
+server- or intermediary-side information associated with media delivery. The two
+vocabularies are complementary: CMCD primarily describes what the client knows
+or requests; CMSD primarily describes what a server or intermediary knows or
+recommends.<a href="#section-8.2-1" class="pilcrow">¶</a></p>
+<p id="section-8.2-2">MoQT has no HTTP segment request or response header. Therefore:<a href="#section-8.2-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-8.2-3.1">
+            <p id="section-8.2-3.1.1">CMCD and CMSD concepts can inform MoQT metric definitions;<a href="#section-8.2-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.2-3.2">
+            <p id="section-8.2-3.2.1">CMCD and CMSD fields <span class="bcp14">MUST NOT</span> be treated as wire-compatible MoQT fields
+without a carriage profile; and<a href="#section-8.2-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.2-3.3">
+            <p id="section-8.2-3.3.1">CMCD and CMSD carriage through HTTP headers or query parameters is outside the
+scope of this document.<a href="#section-8.2-3.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-8.2-4">The following mapping is informative:<a href="#section-8.2-4" class="pilcrow">¶</a></p>
+<span id="name-informative-cmcd-and-cmsd-m"></span><table class="center" id="table-1">
+          <caption>
+<a href="#table-1" class="selfRef">Table 1</a>:
+<a href="#name-informative-cmcd-and-cmsd-m" class="selfRef">Informative CMCD and CMSD Mapping</a>
+          </caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">CMCD/CMSD concept</th>
+              <th class="text-left" rowspan="1" colspan="1">MoQT analogue</th>
+              <th class="text-left" rowspan="1" colspan="1">Perspective</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">CMCD measured throughput (<code>mtp</code>)</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>moq_link_available_bitrate_bps</code> or <code>moq_media_received_bitrate_bps</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Subscriber; the measurement method <span class="bcp14">MUST</span> be stated.</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">CMCD buffer length (<code>bl</code>)</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>moq_sub_buffer_level_seconds</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Subscriber media pipeline.</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">CMCD buffer starvation (<code>bs</code>)</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>moq_sub_buffer_starvation_total</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Subscriber playback.</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">CMCD deadline (<code>dl</code>)</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>moq_sub_deadline_seconds</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Subscriber application deadline, not a transport timeout.</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">CMCD startup concepts</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>moq_sub_startup_delay_seconds</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Subscriber media pipeline.</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">CMCD live-stream latency</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>moq_sub_live_latency_seconds</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Requires a clock or timeline definition.</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">CMCD dropped and non-rendered concepts</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>moq_sub_dropped_frames_total</code>, <code>moq_sub_non_rendered_total</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Subscriber media pipeline.</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">CMSD estimated throughput (<code>etp</code>)</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>moq_link_available_bitrate_bps</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Server or relay estimate; not the subscriber's achieved rate.</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">CMSD max suggested bitrate (<code>mb</code>)</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>moq_relay_suggested_bitrate_bps</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">A recommendation, not a measured bitrate.</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">CMSD response delay (<code>rd</code>)</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>moq_relay_request_processing_seconds</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Relay or server processing.</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">CMSD held time (<code>ht</code>)</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>moq_relay_held_seconds</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Relay or server queue or policy delay.</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">CMSD availability time (<code>at</code>)</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>moq_relay_object_availability_seconds</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Requires a defined origin and time base.</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">CMSD duress (<code>du</code>)</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>moq_relay_duress</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Relay operational state.</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-8.2-6">The mapping intentionally distinguishes measured values, recommendations, and
+playback state. For example, a CMSD suggested bitrate is not the same metric as
+the subscriber's measured throughput, and CMCD buffer length is not the same as
+a relay's object queue.<a href="#section-8.2-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="qlog-and-feedback">
+<section id="section-8.3">
+        <h3 id="name-qlog-and-feedback">
+<a href="#section-8.3" class="section-number selfRef">8.3. </a><a href="#name-qlog-and-feedback" class="section-name selfRef">qlog and Feedback</a>
+        </h3>
+<p id="section-8.3-1">The MoQT qlog event definitions <span>[<a href="#MOQ-QLOG" class="cite xref">MOQ-QLOG</a>]</span> define structured protocol events
+such as control message, subgroup, datagram, and FETCH events. These events can
+provide trace-level evidence for a metric, but qlog records and time-series
+metrics serve different purposes. An implementation <span class="bcp14">MAY</span> correlate them using a
+session or trace identifier.<a href="#section-8.3-1" class="pilcrow">¶</a></p>
+<p id="section-8.3-2"><span>[<a href="#MOQFEEDBACK" class="cite xref">MOQFEEDBACK</a>]</span> defines delivery-quality feedback and a feedback-track
+mechanism. This document provides reusable metric names and semantic guidance;
+the feedback mechanism defines its own report format, negotiation, routing, and
+lifecycle.<a href="#section-8.3-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="security-considerations">
+<section id="section-9">
+      <h2 id="name-security-considerations">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+      </h2>
+<p id="section-9-1">Metric reports can be used to influence operational decisions such as rate
+adaptation, relay selection, and capacity planning. Reports are therefore
+subject to spoofing, injection, replay, and resource-exhaustion attacks.<a href="#section-9-1" class="pilcrow">¶</a></p>
+<p id="section-9-2">Implementations and deployments <span class="bcp14">SHOULD</span>:<a href="#section-9-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-9-3.1">
+          <p id="section-9-3.1.1">apply authorization to metric collection separately from media delivery;<a href="#section-9-3.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-9-3.2">
+          <p id="section-9-3.2.1">bound label cardinality and report sizes before forwarding or export, so that
+a reporter cannot cause unbounded storage or processing at a collector;<a href="#section-9-3.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-9-3.3">
+          <p id="section-9-3.3.1">distinguish measurements from untrusted recommendations or peer assertions;<a href="#section-9-3.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-9-3.4">
+          <p id="section-9-3.4.1">protect reports in transit using the security of the selected carriage;<a href="#section-9-3.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-9-3.5">
+          <p id="section-9-3.5.1">use end-to-end object protection <span>[<a href="#SECURE-OBJECTS" class="cite xref">SECURE-OBJECTS</a>]</span> when relays must not read
+application metrics;<a href="#section-9-3.5.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-9-3.6">
+          <p id="section-9-3.6.1">apply replay, freshness, and sequence handling when reports influence control
+decisions; and<a href="#section-9-3.6.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-9-3.7">
+          <p id="section-9-3.7.1">prevent a reporter from selecting an unauthorized collector or causing a
+node to issue requests to an arbitrary destination.<a href="#section-9-3.7.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-9-4">A metric report <span class="bcp14">MUST NOT</span> be assumed trustworthy merely because it arrived over
+an authenticated MoQT session. A subscriber can report incorrect playback state,
+and a relay can report incorrect operational state. Consumers <span class="bcp14">SHOULD</span> treat
+reports as observations made by a named reporter, not as authoritative truth
+about another node.<a href="#section-9-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="privacy-considerations">
+<section id="section-10">
+      <h2 id="name-privacy-considerations">
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-privacy-considerations" class="section-name selfRef">Privacy Considerations</a>
+      </h2>
+<p id="section-10-1">Metrics can expose namespace and track names, subscriber activity, network
+topology, timing, codec and device information, playback state, and operational
+load. They can also be used to fingerprint a user or infer content consumption.<a href="#section-10-1" class="pilcrow">¶</a></p>
+<p id="section-10-2">Implementations and deployments <span class="bcp14">SHOULD</span>:<a href="#section-10-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-10-3.1">
+          <p id="section-10-3.1.1">avoid raw user identifiers and unconstrained object identifiers in labels (see
+<a href="#labels" class="auto internal xref">Section 4.3</a>);<a href="#section-10-3.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-10-3.2">
+          <p id="section-10-3.2.1">aggregate subscriber and playback metrics before export where per-subscriber
+detail is not required; and<a href="#section-10-3.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-10-3.3">
+          <p id="section-10-3.3.1">document retention and aggregation policies for subscriber and playback
+metrics.<a href="#section-10-3.3.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+</section>
+</div>
+<div id="iana-considerations">
+<section id="section-11">
+      <h2 id="name-iana-considerations">
+<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<p id="section-11-1">This document has no IANA actions.<a href="#section-11-1" class="pilcrow">¶</a></p>
+<p id="section-11-2">A future revision might request a registry for MoQT metric names once the
+metric namespace, registration policy, compatibility model, and relationship to
+other MoQT metrics work are stable. A carriage document that defines a new track
+property, message type, or catalog value is responsible for its own IANA
+considerations.<a href="#section-11-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="use-of-generative-ai">
+<section id="section-12">
+      <h2 id="name-use-of-generative-ai">
+<a href="#name-use-of-generative-ai" class="section-name selfRef">Use of Generative AI</a>
+      </h2>
+<p id="section-12-1">Generative AI tools were used to assist with drafting and editing text for this
+document. All AI-generated content was reviewed and approved by the author.<a href="#section-12-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-combined-references">
+<section id="section-13">
+      <h2 id="name-references">
+<a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<div id="sec-normative-references">
+<section id="section-13.1">
+        <h3 id="name-normative-references">
+<a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="MOQT">[MOQT]</dt>
+        <dd>
+<span class="refAuthor">Nandakumar, S.</span>, <span class="refAuthor">Vasiliev, V.</span>, <span class="refAuthor">Swett, I.</span>, and <span class="refAuthor">A. Frindell</span>, <span class="refTitle">"Media over QUIC Transport"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-moq-transport-21</span>, <time datetime="2026-09-08" class="refDate">8 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-moq-transport-21">https://datatracker.ietf.org/doc/html/draft-ietf-moq-transport-21</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC2119">[RFC2119]</dt>
+        <dd>
+<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc2119">https://www.rfc-editor.org/rfc/rfc2119</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8174">[RFC8174]</dt>
+      <dd>
+<span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8174">https://www.rfc-editor.org/rfc/rfc8174</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="sec-informative-references">
+<section id="section-13.2">
+        <h3 id="name-informative-references">
+<a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="CMCD">[CMCD]</dt>
+        <dd>
+<span class="refAuthor">Consumer Technology Association</span>, <span class="refTitle">"Web Application Video Ecosystem - Common Media Client Data"</span>, <span class="seriesInfo">CTA 5004</span>, <span>&lt;<a href="https://github.com/cta-wave/common-media-client-data">https://github.com/cta-wave/common-media-client-data</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="CMSD">[CMSD]</dt>
+        <dd>
+<span class="refAuthor">Consumer Technology Association</span>, <span class="refTitle">"Web Application Video Ecosystem - Common Media Server Data"</span>, <span class="seriesInfo">CTA 5006</span>, <span>&lt;<a href="https://github.com/cta-wave/common-media-server-data">https://github.com/cta-wave/common-media-server-data</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="CMSF">[CMSF]</dt>
+        <dd>
+<span class="refAuthor">Law, W.</span>, <span class="refTitle">"CMSF- a CMAF compliant implementation of MOQT Streaming Format"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-moq-cmsf-01</span>, <time datetime="2026-06-03" class="refDate">3 June 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-moq-cmsf-01">https://datatracker.ietf.org/doc/html/draft-ietf-moq-cmsf-01</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="LOC">[LOC]</dt>
+        <dd>
+<span class="refAuthor">Zanaty, M.</span>, <span class="refAuthor">Nandakumar, S.</span>, and <span class="refAuthor">P. Thatcher</span>, <span class="refTitle">"Low Overhead Media Container"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-moq-loc-04</span>, <time datetime="2026-07-20" class="refDate">20 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-moq-loc-04">https://datatracker.ietf.org/doc/html/draft-ietf-moq-loc-04</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="MOQ-QLOG">[MOQ-QLOG]</dt>
+        <dd>
+<span class="refAuthor">Pardue, L.</span>, <span class="refAuthor">Engelbart, M.</span>, and <span class="refAuthor">A. Sharma</span>, <span class="refTitle">"MoQ qlog event definitions"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-pardue-moq-qlog-moq-events-08</span>, <time datetime="2026-09-17" class="refDate">17 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-pardue-moq-qlog-moq-events-08">https://datatracker.ietf.org/doc/html/draft-pardue-moq-qlog-moq-events-08</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="MOQFEEDBACK">[MOQFEEDBACK]</dt>
+        <dd>
+<span class="refAuthor">Liu, Y.</span>, <span class="refAuthor">Jiang, M.</span>, and <span class="refAuthor">R. Wu</span>, <span class="refTitle">"MoQ Feedback"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-liu-moq-feedback-00</span>, <time datetime="2026-07-31" class="refDate">31 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-liu-moq-feedback-00">https://datatracker.ietf.org/doc/html/draft-liu-moq-feedback-00</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="MOQMETRICS">[MOQMETRICS]</dt>
+        <dd>
+<span class="refAuthor">Jennings, C. F.</span> and <span class="refAuthor">S. Nandakumar</span>, <span class="refTitle">"Metrics over MOQT"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-jennings-moq-metrics-02</span>, <time datetime="2025-10-20" class="refDate">20 October 2025</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-jennings-moq-metrics-02">https://datatracker.ietf.org/doc/html/draft-jennings-moq-metrics-02</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="MSF">[MSF]</dt>
+        <dd>
+<span class="refAuthor">Law, W.</span> and <span class="refAuthor">S. Nandakumar</span>, <span class="refTitle">"MOQT Streaming Format"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-moq-msf-01</span>, <time datetime="2026-06-02" class="refDate">2 June 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-moq-msf-01">https://datatracker.ietf.org/doc/html/draft-ietf-moq-msf-01</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="OPENMETRICS">[OPENMETRICS]</dt>
+        <dd>
+<span class="refAuthor">Prometheus Authors</span>, <span class="refTitle">"OpenMetrics"</span>, <span>&lt;<a href="https://github.com/prometheus/OpenMetrics/blob/main/specification/OpenMetrics.md">https://github.com/prometheus/OpenMetrics/blob/main/specification/OpenMetrics.md</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="OTEL">[OTEL]</dt>
+        <dd>
+<span class="refAuthor">OpenTelemetry Authors</span>, <span class="refTitle">"OpenTelemetry Metrics Data Model"</span>, <span>&lt;<a href="https://opentelemetry.io/docs/specs/otel/metrics/data-model/">https://opentelemetry.io/docs/specs/otel/metrics/data-model/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9000">[RFC9000]</dt>
+        <dd>
+<span class="refAuthor">Iyengar, J., Ed.</span> and <span class="refAuthor">M. Thomson, Ed.</span>, <span class="refTitle">"QUIC: A UDP-Based Multiplexed and Secure Transport"</span>, <span class="seriesInfo">RFC 9000</span>, <span class="seriesInfo">DOI 10.17487/RFC9000</span>, <time datetime="2021-05" class="refDate">May 2021</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9000">https://www.rfc-editor.org/rfc/rfc9000</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9002">[RFC9002]</dt>
+        <dd>
+<span class="refAuthor">Iyengar, J., Ed.</span> and <span class="refAuthor">I. Swett, Ed.</span>, <span class="refTitle">"QUIC Loss Detection and Congestion Control"</span>, <span class="seriesInfo">RFC 9002</span>, <span class="seriesInfo">DOI 10.17487/RFC9002</span>, <time datetime="2021-05" class="refDate">May 2021</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9002">https://www.rfc-editor.org/rfc/rfc9002</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="SECURE-OBJECTS">[SECURE-OBJECTS]</dt>
+        <dd>
+<span class="refAuthor">Jennings, C. F.</span>, <span class="refAuthor">Nandakumar, S.</span>, and <span class="refAuthor">R. Barnes</span>, <span class="refTitle">"End-to-End Secure Objects for Media over QUIC Transport"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-moq-secure-objects-01</span>, <time datetime="2026-07-06" class="refDate">6 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-moq-secure-objects-01">https://datatracker.ietf.org/doc/html/draft-ietf-moq-secure-objects-01</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="WEBRTC-STATS">[WEBRTC-STATS]</dt>
+      <dd>
+<span class="refAuthor">W3C</span>, <span class="refTitle">"Identifiers for WebRTC's Statistics API"</span>, <span>&lt;<a href="https://www.w3.org/TR/webrtc-stats/">https://www.w3.org/TR/webrtc-stats/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+<div id="open-issues">
+<section id="appendix-A">
+      <h2 id="name-open-issues">
+<a href="#appendix-A" class="section-number selfRef">Appendix A. </a><a href="#name-open-issues" class="section-name selfRef">Open Issues</a>
+      </h2>
+<p id="appendix-A-1">This section is to be removed before publishing as an RFC.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<p id="appendix-A-2">The following questions are open for discussion:<a href="#appendix-A-2" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="appendix-A-3">
+<li id="appendix-A-3.1">
+          <p id="appendix-A-3.1.1">Which metrics belong in a small interoperable base registry, and which should
+remain implementation or packaging profiles?<a href="#appendix-A-3.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-A-3.2">
+          <p id="appendix-A-3.2.1">Should the registry standardize <code>moq_</code> names, semantic identifiers
+independent of export names, or both?<a href="#appendix-A-3.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-A-3.3">
+          <p id="appendix-A-3.3.1">Which labels can be safely standardized across deployments without making
+namespace, track, subscriber, or topology privacy assumptions universal?<a href="#appendix-A-3.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-A-3.4">
+          <p id="appendix-A-3.4.1">Should structured reports use a common encoding, or should MSF, feedback
+tracks, and external exports define separate encodings over a shared
+registry?<a href="#appendix-A-3.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-A-3.5">
+          <p id="appendix-A-3.5.1">Which feedback metrics defined in <span>[<a href="#MOQFEEDBACK" class="cite xref">MOQFEEDBACK</a>]</span> should be referenced by name
+rather than duplicated?<a href="#appendix-A-3.5.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-A-3.6">
+          <p id="appendix-A-3.6.1">Which media and QoE metrics can be defined without requiring a particular
+player, codec, or WebRTC implementation?<a href="#appendix-A-3.6.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-A-3.7">
+          <p id="appendix-A-3.7.1">How should this document align with qlog, OpenMetrics, OpenTelemetry, and
+future relay diagnostics work?<a href="#appendix-A-3.7.1" class="pilcrow">¶</a></p>
+</li>
+      </ol>
+</section>
+</div>
+<div id="acknowledgments">
+<section id="appendix-B">
+      <h2 id="name-acknowledgments">
+<a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
+      </h2>
+<p id="appendix-B-1">TODO acknowledge.<a href="#appendix-B-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-C">
+      <h2 id="name-authors-address">
+<a href="#name-authors-address" class="section-name selfRef">Author's Address</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Giovanni Marzot</span></div>
+<div dir="auto" class="left"><span class="org">Oracle</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:giovanni.marzot@oracle.com" class="email">giovanni.marzot@oracle.com</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>
