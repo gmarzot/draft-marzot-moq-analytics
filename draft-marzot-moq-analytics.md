@@ -29,7 +29,7 @@ author:
  -
     fullname: Giovanni Marzot
     organization: Oracle
-    email: giovani.marzot@oracle.com
+    email: giovanni.marzot@oracle.com
 
 normative:
   MOQT: I-D.ietf-moq-transport
@@ -804,6 +804,13 @@ metric namespace, registration policy, compatibility model, and relationship to
 other MoQT metrics work are stable. A carriage document that defines a new track
 property, message type, or catalog value is responsible for its own IANA
 considerations.
+
+
+# Use of Generative AI
+{:numbered="false"}
+
+Generative AI tools were used to assist with drafting and editing text for this
+document. All AI-generated content was reviewed and approved by the author.
 
 
 --- back
