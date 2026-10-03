@@ -1,7 +1,7 @@
 ---
-title: "Metrics and Analytics for Media over QUIC Transport"
+title: "Metrics and Analytics Delivery for Media over QUIC Transport"
 abbrev: "MoQT Analytics"
-category: info
+category: std
 
 docname: draft-marzot-moq-analytics-latest
 submissiontype: IETF
@@ -33,15 +33,20 @@ author:
 
 normative:
   MOQT: I-D.ietf-moq-transport
+  MSF: I-D.ietf-moq-msf
+  JSON: RFC8259
+  CBOR: RFC8949
+  CDDL: RFC8610
+  RFC9002:
 
 informative:
-  MSF: I-D.ietf-moq-msf
   LOC: I-D.ietf-moq-loc
   CMSF: I-D.ietf-moq-cmsf
   MOQFEEDBACK: I-D.liu-moq-feedback
   MOQMETRICS: I-D.jennings-moq-metrics
   MOQ-QLOG: I-D.pardue-moq-qlog-moq-events
   SECURE-OBJECTS: I-D.ietf-moq-secure-objects
+  RFC9000:
   WEBRTC-STATS:
     title: "Identifiers for WebRTC's Statistics API"
     target: https://www.w3.org/TR/webrtc-stats/
@@ -76,26 +81,27 @@ informative:
     author:
       org: OpenTelemetry Authors
     date: false
+  PROTOBUF:
+    title: "Protocol Buffers"
+    target: https://protobuf.dev/
+    author:
+      org: Google
+    date: false
 
 --- abstract
 
 Media over QUIC Transport (MoQT) deployments need metrics that can be
 interpreted consistently across publishers, subscribers, relays, and
-collectors. Existing systems expose transport counters, media statistics,
-playback statistics, and request outcomes using different names, scopes, and
-units.
+collectors, and a way to deliver those metrics without a separate monitoring
+transport.
 
-This document defines a MoQT-oriented vocabulary and reporting model for
-publisher-, subscriber-, relay-, session-, link-, namespace-, and track-level
-metrics. It defines scope and cardinality guidance, a small common set of metric
-types and units, and informative mappings from metrics commonly available in
-WebRTC statistics, CMCD, and CMSD. It also describes how the vocabulary can be
-carried using existing or companion mechanisms, including MSF metrics tracks,
-subscriber feedback tracks, Event Timeline tracks, dedicated MoQT tracks, and
-implementation-specific export formats.
-
-This document does not define a mandatory metrics transport, a universal
-playback model, or a replacement for QUIC congestion-control feedback.
+This document defines a set of MoQT metric sets, modeled on WebRTC statistics:
+typed groups of optional, camelCase members describing sessions, transports,
+tracks, subscriptions, media pipelines, playback, and relays. It defines a
+Metric Report that carries metric sets, specified in CDDL with JSON and CBOR
+encodings. It also defines how Metric Reports are delivered as objects on MoQT
+analytics tracks, either to an endpoint directed by an MSF or CMSF catalog or
+to a collector configured by the reporter.
 
 --- middle
 
@@ -103,707 +109,911 @@ playback model, or a replacement for QUIC congestion-control feedback.
 
 MoQT {{MOQT}} is a media-agnostic publish/subscribe protocol running over QUIC
 and WebTransport. It exposes protocol events and delivery coordinates, such as
-sessions, requests, namespaces, tracks, groups, objects, streams, and datagrams,
-that are useful for operational measurement. A deployment may also have a media
-pipeline that exposes codec, frame, buffer, and playback statistics.
+sessions, requests, namespaces, tracks, groups, and objects, that are useful for
+operational measurement. A deployment may also have a media pipeline that
+exposes codec, frame, buffer, and playback statistics.
 
 These measurements are currently difficult to combine. One implementation may
 expose subscription counters, another may expose QUIC recovery state, and a
 media endpoint may expose WebRTC statistics {{WEBRTC-STATS}}. The same concept
-may have different names, units, labels, and aggregation rules. A relay operator
+may have different names, units, and aggregation rules. A relay operator
 therefore cannot reliably compare a publisher's observations with a subscriber's
 observations or correlate them with relay and transport events.
 
-This document defines a common vocabulary rather than prescribing a single
-monitoring system. An implementation can expose the metrics through OpenMetrics
-{{OPENMETRICS}}, OpenTelemetry {{OTEL}}, qlog {{MOQ-QLOG}}, a MoQT metrics track,
-an MSF {{MSF}} track, a feedback track, or another format. The metric definition
-remains separate from the carriage mechanism.
+MSF {{MSF}} allows a catalog to declare publish tracks to which a subscriber
+sends metrics, and {{MOQMETRICS}} defines a generic metrics payload that carries
+one named gauge or counter per object. Neither defines what MoQT-specific
+metrics mean. This document fills that gap and defines a delivery format suited
+to it.
 
-## Goals
+## Overview
 
-This document has four goals:
+This document defines three things:
 
-1. define MoQT-native scopes and terminology for measurements;
-2. identify a small interoperable set of metrics with explicit type, unit, and
-   aggregation semantics;
-3. provide practical mappings from statistics that endpoint implementations
-   commonly expose today; and
-4. allow the same metric semantics to be carried through different MoQT
-   packaging and reporting mechanisms.
+Metric sets ({{sets}}):
+: Typed groups of related metrics, each describing one measured entity such as
+  a transport, an inbound track, or a playback session. As with WebRTC
+  statistics, every member other than the identifying members is optional, so
+  that a reporter includes only what it can measure.
+
+Metric Reports ({{report}}):
+: A container that carries a batch of metric sets from one reporter, specified
+  in CDDL {{CDDL}} with a JSON {{JSON}} encoding and a CBOR {{CBOR}} encoding.
+
+Delivery ({{delivery}}):
+: A mapping of Metric Reports onto the objects of a MoQT analytics track,
+  integration with the MSF and CMSF catalog, and delivery to a collector
+  configured by the reporter.
+
+The metric sets are useful independently of the delivery mechanism. An
+implementation can also export them to OpenMetrics {{OPENMETRICS}} or
+OpenTelemetry {{OTEL}} using the naming rule in {{export}}.
 
 ## Non-Goals
 
-This document does not require a node to expose every metric. It distinguishes
-metrics that are directly observable at the MoQT or QUIC layer from metrics that
-require a media pipeline, decoder, renderer, or application-specific deadline.
-
-This document does not define a wire encoding for metric reports, an alternate
-reporting destination, or relay forwarding behavior for reports. These are left
-to carriage documents (see {{carriage}}).
-
-CMCD {{CMCD}} and CMSD {{CMSD}} are treated as related HTTP adaptive-streaming
-vocabularies: their concepts inform the mapping of client QoE and server
-delivery metrics, while their HTTP carriage is not assumed by MoQT.
+This document does not define a universal playback model, a replacement for
+QUIC congestion-control feedback, or per-object delivery feedback such as that
+defined in {{MOQFEEDBACK}}. It does not require a node to report every metric
+set or member.
 
 
 # Conventions and Definitions
 
 {::boilerplate bcp14-tagged}
 
-This document uses the following terms, in addition to those defined in
-{{MOQT}}:
-
-Publisher:
-: An endpoint that publishes a namespace or track and sends objects.
-
-Subscriber:
-: An endpoint that subscribes to or fetches a track and receives objects.
-
-Relay:
-: A MoQT intermediary that forwards or caches objects between sessions.
+This document uses the terms defined in {{MOQT}}, including Session, Track,
+Track Namespace, Group, Object, Publisher, Subscriber, and Relay. In addition:
 
 Reporter:
-: A publisher, subscriber, relay, or collector-side component that creates a
-  measurement.
+: A publisher, subscriber, or relay that produces metric sets.
 
 Collector:
-: A component that receives, stores, aggregates, or presents measurements.
+: A component that receives, stores, aggregates, or presents metric sets.
 
-Session:
-: One MoQT connection and its negotiated protocol state.
+Metric Set:
+: A typed collection of members describing one measured entity at one point in
+  time.
 
-Link:
-: One directed observation path over a session, normally between two directly
-  connected MoQT nodes.
+Member:
+: A named value within a metric set.
 
-Namespace:
-: A MoQT track namespace.
+Metric Report:
+: A container carrying one or more metric sets from a single reporter.
 
-Track:
-: A MoQT track identified by a namespace and track name.
+Analytics Track:
+: A MoQT track whose objects carry Metric Reports.
 
-Group:
-: A sequence of objects with a common group identifier.
-
-Object:
-: A MoQT delivery unit identified by a group and object identifier.
-
-Delivery Mode:
-: The mechanism used to carry objects, such as a subgroup stream, a per-object
-  stream, or a datagram.
-
-QoE:
-: Application or playback observations that describe user-visible quality.
-  QoE metrics are not inferred from transport measurements unless explicitly
-  stated.
-
-Metric names in this document use the `moq_` prefix and snake case.
-Implementations MAY expose equivalent names in another namespace, but a mapping
-to the names and semantics in this document is necessary for interoperability.
+Member and field names in this document use lowerCamelCase, consistent with
+{{WEBRTC-STATS}} and the MSF catalog. Metric set type names use lowercase words
+separated by hyphens.
 
 
-# Design Principles
+# Metric Model {#model}
 
-## Measurement Layers {#layers}
+## Measurement Layers
 
-Measurements are divided into layers:
+Members are measured at one of the following layers:
 
-Application and request layer:
-: Request outcomes, request latency, authorization results, and session
-  lifecycle.
+* MoQT layer: requests, subscriptions, objects, groups, and streams;
+* QUIC layer: round-trip time, loss, congestion control, flow control, and
+  datagrams;
+* media layer: encoding, decoding, frames, and codecs; and
+* playback layer: buffering, latency, stalls, and rendering.
 
-MoQT delivery layer:
-: Object counts, bytes, group boundaries, delivery mode, object locations,
-  stream outcomes, and subscription state.
+Each metric set type in {{sets}} belongs to one layer. A reporter MUST NOT
+report a value measured at one layer in a member defined at another layer. For
+example, a subscriber that has no playback signal cannot report a playback
+stall based on transport observations alone.
 
-QUIC transport layer:
-: RTT, loss, congestion-control state, bytes, streams, flow control, and
-  datagram state.
+## Value Types {#types}
 
-Media pipeline layer:
-: Codec, encoded and decoded frames, frame rate, keyframes, decode time, render
-  state, and playout buffer.
-
-Playback and QoE layer:
-: Startup, stalls, live latency, deadline headroom, dropped frames, and
-  non-rendered content.
-
-A metric MUST identify the layer at which it is measured or derived. A
-subscriber MUST NOT report an application-layer playback metric as if it were a
-QUIC or MoQT-layer observation.
-
-## Observation versus Interpretation
-
-A metric definition describes an observation and its unit. Implementations MAY
-derive higher-level indicators from multiple observations, but the derivation
-SHOULD be documented. For example, a receiver can report
-`moq_track_objects_received_total` from its MoQT object callback. It cannot
-infer `moq_sub_buffer_starvation_total` without a playback or rendering signal.
-
-## Metric Types {#types}
+Each member has one of the following value types:
 
 Counter:
-: A cumulative count that increases during a process lifetime and may reset when
-  the reporting process restarts.
+: A cumulative, non-decreasing value over the lifetime of the metric set. Counts
+  are unsigned integers. Cumulative times are numbers in seconds.
 
 Gauge:
-: A sampled value that may increase or decrease.
+: A value sampled at the metric set's timestamp that may increase or decrease.
 
 Histogram:
-: A distribution of observations. A histogram has an observation unit and an
-  aggregation policy; bucket boundaries are a collector or profile choice unless
-  a metric definition specifies them.
+: A distribution of observations made over the lifetime of the metric set; see
+  {{histograms}}.
 
-An implementation exporting a counter MUST document reset behavior. A collector
-MUST use the reporter identity and process or session lifetime when interpreting
-counter resets.
+Attribute:
+: A descriptive value, such as a codec string or a state, that is not a
+  measurement.
 
+Durations are expressed in seconds, bitrates in bits per second, and sizes in
+bytes. Timestamps are expressed in milliseconds since the Unix epoch,
+consistent with the MSF catalog.
 
-# MoQT Observability Model
+## Optionality {#optionality}
 
-## Scopes
+Every member of a metric set other than `type`, `id`, and `timestamp` is
+OPTIONAL. A reporter MUST omit a member that it cannot measure or derive as
+defined, rather than reporting zero or a placeholder value. A collector MUST
+interpret an absent member as "not reported", not as zero.
 
-A deployment can be viewed as the following hierarchy:
+## Lifetime and Resets
 
-~~~ ascii-art
-Deployment
-  -> Relay Mesh
-    -> Relay Node
-      -> Link
-        -> Namespace
-          -> Track
-            -> Group
-              -> Object
-~~~
-{: title="Observation Scopes"}
+A metric set describes an entity, such as a transport or a track, for as long
+as that entity exists at the reporter. Counters and histograms accumulate from
+the time the reporter first creates the metric set. The `id` of a metric set
+MUST remain stable for its lifetime, and a reporter MUST use a new `id` whenever
+the counters of a metric set are reset, for example after a process restart. A
+collector can therefore treat a change of `id` as a counter reset.
 
-This hierarchy describes possible scopes, not a requirement that every report
-contain every ancestor. A report SHOULD carry enough context for a collector to
-associate it with a deployment, node, session, namespace, or track according to
-local authorization policy.
+## Identifiers and Cardinality {#cardinality}
+
+Metric sets refer to one another by `id`, for example an `inbound-track` set
+names its session in `sessionId`. These identifiers are scoped to the reporter
+and are not meaningful to other nodes.
 
 The principal operational scope is normally the track. Group and object
-identifiers are useful for local correlation and debugging, but they are usually
-unsuitable as metric labels. Implementations SHOULD aggregate group- and
-object-level observations into counters or histograms and SHOULD avoid
-unbounded labels containing object identifiers.
+identifiers are useful for local correlation and debugging, but are not
+suitable as dimensions of a time series. Reporters SHOULD aggregate group- and
+object-level observations into counters or histograms, as the metric sets in
+this document do.
 
-## Reporter Perspective
+Track namespaces and track names can reveal content and viewing behavior, and
+can have high cardinality across a deployment. A reporter MAY omit `namespace`
+and `trackName` and identify a track only by the `id` of its metric set when the
+collector already knows the association, or when policy does not permit
+reporting the names.
 
-The same concept can differ by vantage point. For example:
 
-* a publisher's sent bitrate is measured before or at publisher-side MoQT
-  transmission;
-* a relay's forwarded bitrate is measured on a particular link;
-* a subscriber's received bitrate is measured after object admission at the
-  receiving MoQT layer; and
-* a player's rendered bitrate is measured after decode and playout selection.
+# Metric Sets {#sets}
 
-Metric names SHOULD distinguish these perspectives through scope or an explicit
-reporter role. A receiver MUST NOT use a publisher-side name for a
-subscriber-side measurement merely because both values are expressed in the
-same unit.
+Each metric set has the following members:
 
-## Labels and Cardinality {#labels}
+`type`:
+: Attribute, required. The metric set type, as defined in this section or as an
+  extension type ({{extensions}}).
 
-Labels are dimensions of a time series, not a replacement for report scope.
-Implementations SHOULD prefer a bounded label set such as:
+`id`:
+: Attribute, required. An identifier for the metric set, unique within the
+  reporter for the lifetime of the set.
 
-* `role`: `publisher`, `subscriber`, `relay`, or `collector`;
-* `direction`: `upstream` or `downstream`;
-* `result`: a stable result class and, where useful, a protocol error class;
-* `delivery_mode`: `subgroup`, `stream`, or `datagram`;
-* `version`: the negotiated MoQT version or protocol profile; and
-* a deployment-controlled relay or link identifier.
+`timestamp`:
+: Required. The time at which the members of the set were sampled, in
+  milliseconds since the Unix epoch.
 
-Namespace and track labels MAY be used where their cardinality and privacy
-impact are acceptable. Implementations SHOULD NOT use raw object identifiers,
-request identifiers, subscriber identities, or unconstrained URLs as labels in
-fleet-wide time series. Such values MAY appear in a bounded diagnostic report
-or trace event when authorized.
+The following metric set types are defined:
 
+| Type | Layer | Describes |
+|---|---|---|
+| `session` | MoQT | A MoQT session |
+| `requests` | MoQT | Requests of one kind |
+| `transport` | QUIC | The QUIC connection of a session |
+| `outbound-track` | MoQT | A track as sent by the reporter |
+| `inbound-track` | MoQT | A track as received by the reporter |
+| `subscription` | MoQT | One subscription |
+| `media-source` | media | An encoder output for a track |
+| `inbound-media` | media | A decoder input for a track |
+| `playback` | playback | Playback of a set of tracks |
+| `relay` | MoQT | A relay node |
+{: title="Metric Set Types"}
 
-# Metric Registry {#registry}
+## session
 
-This section defines a starter set of metrics. Each entry has a name, type,
-unit, scope, and description.
+`transportId`:
+: Attribute. The `id` of the `transport` set for this session.
 
-An implementation MAY omit a metric when the observation is unavailable, but
-MUST NOT emit a value that it cannot measure or derive as specified.
+`version`:
+: Attribute. The negotiated MoQT version.
 
-## Session and Request Metrics
+`binding`:
+: Attribute. `quic` or `webtransport`.
 
-`moq_sessions_active`:
-: Gauge. Unit: sessions. Scope: node. Active MoQT sessions.
+`state`:
+: Attribute. One of `connecting`, `established`, `draining`, or `closed`.
 
-`moq_session_duration_seconds`:
-: Histogram. Unit: seconds. Scope: session. Duration of completed sessions.
+`setupTime`:
+: Gauge, seconds. Time from the start of the connection to completion of the
+  MoQT session setup.
 
-`moq_requests_total`:
-: Counter. Unit: requests. Scope: node, session. Requests by request kind and result class.
+`goawaysReceived`:
+: Counter. GOAWAY messages received.
 
-`moq_request_duration_seconds`:
-: Histogram. Unit: seconds. Scope: request kind. Time from request creation to terminal response.
+## requests
 
-`moq_request_errors_total`:
-: Counter. Unit: errors. Scope: request kind. Requests ending in an error, optionally classified by stable error class.
+A `requests` set summarizes requests of one kind on one session, or across the
+reporter when `sessionId` is absent.
 
-`moq_subscriptions_active`:
-: Gauge. Unit: subscriptions. Scope: node, namespace, track. Active subscriptions at the reporting node.
+`kind`:
+: Attribute, required. One of `subscribe`, `fetch`, `publish`,
+  `publish-namespace`, `subscribe-namespace`, `track-status`, or a request kind
+  defined by an extension to {{MOQT}}.
 
-`moq_fetches_active`:
-: Gauge. Unit: fetches. Scope: node, namespace, track. Active FETCH operations at the reporting node.
+`sessionId`:
+: Attribute. The `id` of the `session` set.
 
-The request kind SHOULD be one of `subscribe`, `fetch`, `publish`,
-`publish_namespace`, `subscribe_namespace`, `track_status`, or an extension
-defined by the relevant protocol document.
+`sent`:
+: Counter. Requests sent.
 
-## Link and QUIC Metrics
+`received`:
+: Counter. Requests received.
 
-`moq_link_rtt_seconds`:
-: Gauge or histogram. Unit: seconds. Scope: link. Smoothed or sampled round-trip time, with the chosen QUIC statistic identified.
+`succeeded`:
+: Counter. Requests that completed successfully.
 
-`moq_link_available_bitrate_bps`:
-: Gauge. Unit: bits/s. Scope: link. Estimated available bitrate, when exposed by the transport or media stack.
+`failed`:
+: Counter. Requests that ended in an error.
 
-`moq_link_packet_loss_ratio`:
-: Gauge. Unit: ratio. Scope: link. Packet loss ratio over a defined observation interval.
+`active`:
+: Gauge. Requests currently in progress.
 
-`moq_link_bytes_sent_total`:
-: Counter. Unit: bytes. Scope: link. Bytes submitted to the transport in the reporting direction.
+`responseTime`:
+: Histogram, seconds. Time from sending a request to receiving its response.
 
-`moq_link_bytes_received_total`:
-: Counter. Unit: bytes. Scope: link. Bytes admitted from the transport in the reporting direction.
+`errorCodes`:
+: Counter. Failed requests by error code, as a list of code and count pairs.
 
-`moq_link_streams_active`:
-: Gauge. Unit: streams. Scope: link. Active MoQT or QUIC streams, with stream class if bounded.
+## transport
 
-`moq_link_datagrams_sent_total`:
-: Counter. Unit: datagrams. Scope: link. Datagrams submitted.
+A `transport` set describes the QUIC connection {{RFC9000}} underlying a
+session. The RTT members have the meanings defined in {{RFC9002, Section 5}}.
 
-`moq_link_datagrams_lost_total`:
-: Counter. Unit: datagrams. Scope: link. Datagrams inferred or reported as lost.
+`sessionId`:
+: Attribute. The `id` of the `session` set.
 
-`moq_link_congestion_blocked_seconds_total`:
-: Counter. Unit: seconds. Scope: link. Time during which application writes were blocked by the transport or configured send budget.
+`bytesSent`, `bytesReceived`:
+: Counter, bytes. UDP payload bytes sent and received.
 
-`moq_link_cwnd_bytes`:
-: Gauge. Unit: bytes. Scope: link. Congestion window, only when exposed by the transport implementation.
+`packetsSent`, `packetsReceived`:
+: Counter. QUIC packets sent and received.
 
-`moq_link_flow_control_blocked_seconds_total`:
-: Counter. Unit: seconds. Scope: link. Time blocked by flow-control limits, distinct from congestion-control blocking where distinguishable.
+`packetsLost`:
+: Counter. QUIC packets declared lost.
 
-QUIC measurements are implementation-specific unless a QUIC specification such
-as {{?RFC9000}} or {{?RFC9002}} defines the statistic. An implementation SHOULD
-identify whether a value comes from QUIC recovery, a transport binding, or an
-application-side observation.
+`latestRtt`, `minRtt`, `smoothedRtt`, `rttVar`:
+: Gauge, seconds. The latest_rtt, min_rtt, smoothed_rtt, and rttvar values.
 
-## MoQT Delivery Metrics
+`cwnd`:
+: Gauge, bytes. The congestion window.
 
-`moq_track_objects_sent_total`:
-: Counter. Unit: objects. Scope: track, link. Objects submitted for transmission.
+`bytesInFlight`:
+: Gauge, bytes. Bytes sent but not yet acknowledged or declared lost.
 
-`moq_track_objects_received_total`:
-: Counter. Unit: objects. Scope: track, link. Objects admitted at the receiving MoQT layer.
+`availableBitrate`:
+: Gauge, bits per second. The sending rate the congestion controller estimates
+  is available.
 
-`moq_track_objects_dropped_total`:
-: Counter. Unit: objects. Scope: track, link. Objects discarded by a configured local policy, with the policy distinguished from transport loss where possible.
+`cwndBlockedTime`:
+: Counter, seconds. Time during which sending was blocked by congestion control.
 
-`moq_track_bytes_sent_total`:
-: Counter. Unit: bytes. Scope: track, link. Object payload or object wire bytes sent, with the counted convention documented.
+`flowBlockedTime`:
+: Counter, seconds. Time during which sending was blocked by flow control.
 
-`moq_track_bytes_received_total`:
-: Counter. Unit: bytes. Scope: track, link. Object payload or object wire bytes received, with the counted convention documented.
+`streamsOpened`:
+: Counter. Streams opened.
 
-`moq_track_delivery_latency_seconds`:
-: Histogram. Unit: seconds. Scope: track, link. Sender-to-receiver latency when an object timestamp or synchronized measurement makes it meaningful.
+`streamsActive`:
+: Gauge. Streams currently open.
 
-`moq_track_object_interarrival_seconds`:
-: Histogram. Unit: seconds. Scope: track. Inter-arrival interval of admitted objects.
+`datagramsSent`, `datagramsReceived`:
+: Counter. QUIC datagrams sent and received.
 
-`moq_track_groups_completed_total`:
-: Counter. Unit: groups. Scope: track. Groups observed or completed according to the local delivery rule.
+`datagramsLost`:
+: Counter. QUIC datagrams declared lost.
 
-`moq_track_group_duration_seconds`:
-: Histogram. Unit: seconds. Scope: track. Time span between the first and last object in a group, when defined.
+## outbound-track
 
-`moq_track_delivery_mode`:
-: Enumerated attribute. Scope: track. Delivery mode used by the track or subscription.
+An `outbound-track` set describes a track that the reporter sends on one
+session. Byte counts in track sets count object payload bytes.
 
-`moq_track_priority`:
-: Gauge. Unit: priority value. Scope: track, link. MoQT priority value applied to the relevant request or delivery.
+`namespace`, `trackName`:
+: Attribute. The track namespace, as a list of strings, and the track name.
 
-`moq_subscription_objects_late_total`:
-: Counter. Unit: objects. Scope: subscription. Objects arriving after an application-defined deadline.
+`sessionId`:
+: Attribute. The `id` of the `session` set.
 
-`moq_subscription_objects_lost_total`:
-: Counter. Unit: objects. Scope: subscription. Objects classified as not received or otherwise unavailable.
+`deliveryMode`:
+: Attribute. `subgroup`, `datagram`, or `mixed`.
 
-`moq_subscription_repair_requests_total`:
-: Counter. Unit: requests. Scope: subscription. FETCH or equivalent repair requests issued for the subscription.
+`priority`:
+: Gauge. The publisher priority of the track.
 
-The definitions of "sent", "received", "dropped", and "lost" MUST identify the
-observation point. A receiver MUST NOT count a missing object as lost solely
-because it has not yet reached a report deadline.
+`objectsSent`:
+: Counter. Objects sent.
 
-## Media and Subscriber QoE Metrics
+`bytesSent`:
+: Counter, bytes. Object payload bytes sent.
 
-These metrics require a media pipeline, decoder, renderer, or
-application-specific playback model. They cannot be produced by a generic MoQT
-transport alone.
+`groupsSent`:
+: Counter. Groups for which at least one object was sent.
 
-`moq_media_encoded_bitrate_bps`:
-: Gauge. Unit: bits/s. Scope: publisher, track. Encoded media bitrate.
+`objectsDropped`:
+: Counter. Objects that the reporter chose not to send, for example due to a
+  delivery timeout or local policy.
 
-`moq_media_received_bitrate_bps`:
-: Gauge. Unit: bits/s. Scope: subscriber, track. Media bytes received over a defined interval.
+`streamsReset`:
+: Counter. Streams for this track reset by the reporter.
 
-`moq_media_frame_rate_fps`:
-: Gauge. Unit: frames/s. Scope: track. Encoded, decoded, or rendered frame rate; the stage MUST be stated.
+`subscriptions`:
+: Gauge. Active subscriptions served by this track.
 
-`moq_media_frames_encoded_total`:
-: Counter. Unit: frames. Scope: publisher, track. Frames encoded by the media pipeline.
+`largestLocation`:
+: Gauge. The largest group and object sent.
 
-`moq_media_frames_decoded_total`:
-: Counter. Unit: frames. Scope: subscriber, track. Frames decoded by the media pipeline.
+## inbound-track
 
-`moq_media_keyframes_encoded_total`:
-: Counter. Unit: frames. Scope: publisher, track. Keyframes or random-access frames encoded.
+An `inbound-track` set describes a track that the reporter receives on one
+session.
 
-`moq_media_keyframe_interval_seconds`:
-: Gauge or histogram. Unit: seconds. Scope: track. Interval between keyframes or random-access points.
+`namespace`, `trackName`, `sessionId`, `deliveryMode`:
+: As for `outbound-track`.
 
-`moq_media_codec`:
-: Enumerated attribute. Scope: track. Codec and profile at the media pipeline boundary.
+`objectsReceived`:
+: Counter. Objects received.
 
-`moq_media_jitter_seconds`:
-: Gauge or histogram. Unit: seconds. Scope: subscriber, track. Media-pipeline jitter; distinct from MoQT object inter-arrival jitter.
+`bytesReceived`:
+: Counter, bytes. Object payload bytes received.
 
-`moq_media_decode_time_seconds`:
-: Histogram. Unit: seconds. Scope: subscriber, track. Time spent decoding media samples or frames.
+`groupsReceived`:
+: Counter. Groups for which at least one object was received.
 
-`moq_sub_buffer_level_seconds`:
-: Gauge. Unit: seconds. Scope: subscriber, track. Forward buffer or playout buffer level, according to the application definition.
+`groupsCompleted`:
+: Counter. Groups received in full, as determined by the end of each group.
 
-`moq_sub_buffer_starvation_total`:
-: Counter. Unit: events. Scope: subscriber, track. Buffer starvation or rebuffering events.
+`objectsLost`:
+: Counter. Objects determined not to have been received. A reporter MUST NOT
+  count an object as lost only because it has not yet arrived.
 
-`moq_sub_startup_delay_seconds`:
-: Histogram. Unit: seconds. Scope: subscriber, track. Time from the selected startup event to first usable or rendered media.
+`objectsLate`:
+: Counter. Objects received after an application-defined deadline.
 
-`moq_sub_live_latency_seconds`:
-: Gauge or histogram. Unit: seconds. Scope: subscriber, track. End-to-end live latency, requiring an agreed clock or timeline.
+`duplicates`:
+: Counter. Objects received more than once.
 
-`moq_sub_deadline_seconds`:
-: Gauge. Unit: seconds. Scope: subscriber, track. Application-defined time until the next playback deadline.
+`streamsReset`:
+: Counter. Streams for this track reset by the sender.
 
-`moq_sub_dropped_frames_total`:
-: Counter. Unit: frames. Scope: subscriber, track. Frames dropped by the media pipeline or renderer.
+`largestLocation`:
+: Gauge. The largest group and object received.
 
-`moq_sub_non_rendered_total`:
-: Counter. Unit: objects or frames. Scope: subscriber, track. Media received or decoded but not rendered, with the cause classified where possible.
+`interarrival`:
+: Histogram, seconds. Time between consecutive received objects.
 
-`moq_sub_playout_ahead_seconds`:
-: Gauge. Unit: seconds. Scope: subscriber, track. Time remaining before the playout buffer is exhausted.
+`latency`:
+: Histogram, seconds. Time from object creation to receipt. This member
+  requires a creation timestamp and a clock synchronized with the sender.
 
-## Relay and Resource Metrics
+`groupDuration`:
+: Histogram, seconds. Time from the first to the last object received in a
+  group.
 
-`moq_relay_request_processing_seconds`:
-: Histogram. Unit: seconds. Scope: relay, request kind. Relay processing time excluding downstream transport delay where measurable.
+## subscription
 
-`moq_relay_held_seconds`:
-: Histogram. Unit: seconds. Scope: relay, request kind. Time a request or object was held by a relay policy or queue.
+`namespace`, `trackName`, `sessionId`:
+: As for `outbound-track`.
 
-`moq_relay_object_availability_seconds`:
-: Histogram. Unit: seconds. Scope: relay, track. Time between object availability at the relay and the relay's forwarding decision or admission.
+`trackId`:
+: Attribute. The `id` of the `inbound-track` or `outbound-track` set.
 
-`moq_relay_cache_hits_total`:
-: Counter. Unit: objects or groups. Scope: relay, track. Cache hits, with the cache lookup unit specified.
+`requestId`:
+: Attribute. The MoQT request ID of the subscription.
 
-`moq_relay_cache_misses_total`:
-: Counter. Unit: objects or groups. Scope: relay, track. Cache misses.
+`state`:
+: Attribute. One of `pending`, `active`, `done`, or `error`.
 
-`moq_relay_duress`:
-: Gauge. Unit: boolean or ratio. Scope: relay. Relay load or duress indicator; the definition MUST be deployment-specific and documented.
+`forward`:
+: Attribute. The forward state of the subscription.
 
-`moq_relay_suggested_bitrate_bps`:
-: Gauge. Unit: bits/s. Scope: relay, track. A relay-originated bitrate recommendation, if a companion control mechanism defines one.
+`priority`:
+: Gauge. The subscriber priority.
 
+`groupOrder`:
+: Attribute. `ascending` or `descending`.
 
-# Report Data Model {#report}
+`responseTime`:
+: Gauge, seconds. Time from sending the subscription request to receiving its
+  response.
 
-A metrics export MAY represent a single sample, a batch of samples, or a time
-series. When a structured report is used, the following conceptual fields are
-RECOMMENDED:
+`repairRequests`:
+: Counter. FETCH requests issued to recover objects missing from this
+  subscription.
 
-~~~ pseudocode
-MetricReport {
-  report_time   : timestamp,
-  reporter_id   : opaque identifier,
-  reporter_role : publisher | subscriber | relay | collector,
-  session_id    : opaque identifier (optional),
-  scope         : deployment | relay | link | session | namespace |
-                  track | subscription,
-  scope_id      : opaque identifier,
-  samples       : [MetricSample],
-  sequence      : unsigned integer (optional),
-  expires       : timestamp or duration (optional)
-}
+## media-source
 
-MetricSample {
-  name          : registered metric name,
-  type          : counter | gauge | histogram,
-  unit          : registered unit,
-  value         : typed metric value,
-  attributes    : bounded key/value set (optional),
-  interval      : observation interval (optional),
-  source        : observation layer or source (optional)
+A `media-source` set describes the output of an encoder at a publisher. Where a
+member shares a name with a member of the WebRTC `outbound-rtp` or
+`media-source` statistics {{WEBRTC-STATS}}, it has the same definition.
+
+`trackId`:
+: Attribute. The `id` of the `outbound-track` set carrying this media.
+
+`kind`:
+: Attribute. `audio`, `video`, or another media kind.
+
+`codec`:
+: Attribute. The codec string, as used in the MSF catalog.
+
+`bitrate`:
+: Gauge, bits per second. The encoded bitrate.
+
+`framesEncoded`:
+: Counter. Frames encoded.
+
+`keyFramesEncoded`:
+: Counter. Key frames encoded.
+
+`framesPerSecond`:
+: Gauge. Frames encoded per second.
+
+`keyFrameInterval`:
+: Gauge, seconds. Time between key frames.
+
+`width`, `height`:
+: Gauge, pixels. The encoded frame dimensions.
+
+`totalEncodeTime`:
+: Counter, seconds. Time spent encoding.
+
+## inbound-media
+
+An `inbound-media` set describes the input to a decoder at a subscriber. Where a
+member shares a name with a member of the WebRTC `inbound-rtp` statistics
+{{WEBRTC-STATS}}, it has the same definition.
+
+`trackId`:
+: Attribute. The `id` of the `inbound-track` set carrying this media.
+
+`kind`, `codec`:
+: As for `media-source`.
+
+`bitrate`:
+: Gauge, bits per second. The received media bitrate.
+
+`framesReceived`:
+: Counter. Frames received.
+
+`framesDecoded`:
+: Counter. Frames decoded.
+
+`keyFramesDecoded`:
+: Counter. Key frames decoded.
+
+`framesDropped`:
+: Counter. Frames dropped before or after decoding.
+
+`framesPerSecond`:
+: Gauge. Frames decoded per second.
+
+`totalDecodeTime`:
+: Counter, seconds. Time spent decoding.
+
+`jitter`:
+: Gauge, seconds. Variation in media arrival time, as defined by the media
+  pipeline. This is distinct from the `interarrival` histogram of the
+  `inbound-track` set.
+
+`width`, `height`:
+: Gauge, pixels. The decoded frame dimensions.
+
+`concealedSamples`:
+: Counter. Audio samples concealed.
+
+## playback
+
+A `playback` set describes the playback of one or more tracks at a
+subscriber. All of its members require a playback model.
+
+`trackIds`:
+: Attribute. The `id` values of the `inbound-media` or `inbound-track` sets
+  being played.
+
+`renderGroup`:
+: Attribute. The MSF render group being played.
+
+`state`:
+: Attribute. One of `startup`, `playing`, `paused`, `stalled`, or `ended`.
+
+`startupTime`:
+: Gauge, seconds. Time from the start of playback to the first rendered media.
+
+`bufferLevel`:
+: Gauge, seconds. Media buffered ahead of the playback position.
+
+`targetLatency`:
+: Gauge, seconds. The latency the player is attempting to maintain.
+
+`liveLatency`:
+: Gauge, seconds. Time between the creation of the media being rendered and its
+  rendering. This member requires a clock synchronized with the publisher.
+
+`deadline`:
+: Gauge, seconds. Time remaining until the next object must be available to
+  avoid a stall.
+
+`stallCount`:
+: Counter. Playback stalls after startup.
+
+`totalStallTime`:
+: Counter, seconds. Time spent stalled after startup.
+
+`nonRendered`:
+: Counter. Objects received but not rendered, for example because they arrived
+  after their playback time.
+
+`switches`:
+: Counter. Switches between tracks in an alternate group.
+
+## relay
+
+`sessions`:
+: Gauge. Active sessions.
+
+`subscriptions`:
+: Gauge. Active subscriptions.
+
+`fetches`:
+: Gauge. Active FETCH requests.
+
+`cacheHits`, `cacheMisses`:
+: Counter. Object lookups satisfied, and not satisfied, by the relay cache.
+
+`cacheBytes`:
+: Gauge, bytes. Object payload bytes held in the cache.
+
+`processingTime`:
+: Histogram, seconds. Time from receiving a request to forwarding it or
+  responding.
+
+`heldTime`:
+: Histogram, seconds. Time objects were held in a relay queue before being sent.
+
+`availabilityTime`:
+: Histogram, seconds. Time from receiving an object to it being available to
+  subscribers.
+
+`duress`:
+: Gauge. A deployment-defined load indicator between 0 and 1.
+
+## Histograms {#histograms}
+
+A histogram member is a map with the following fields:
+
+* `count`: the number of observations;
+* `sum`: the sum of the observations;
+* `min` and `max`: OPTIONAL minimum and maximum observations;
+* `bounds`: an OPTIONAL list of ascending bucket upper bounds; and
+* `counts`: the number of observations in each bucket, with one more entry than
+  `bounds`. The last entry counts observations greater than the last bound.
+
+This is the explicit bucket histogram of {{OTEL}}. Bucket bounds are chosen by
+the reporter unless a catalog or profile specifies them.
+
+## Extensions {#extensions}
+
+A reporter MAY include members and metric set types not defined in this
+document. The name of an extension member or extension type MUST be a reverse
+domain name under the control of the defining party, such as
+`com.example.gpuUtilization`. Receivers MUST ignore members and metric sets that
+they do not understand.
+
+
+# Metric Reports {#report}
+
+A Metric Report carries metric sets from one reporter. It has the following
+fields:
+
+`version`:
+: The version of this format. For this document, `draft-00`.
+
+`reporter`:
+: A map containing the reporter `id` and its `role`: `publisher`,
+  `subscriber`, or `relay`.
+
+`generatedAt`:
+: The time the report was generated, in milliseconds since the Unix epoch.
+
+`sequence`:
+: OPTIONAL. A number that increases by one with each report from the reporter,
+  allowing a collector to detect missing reports.
+
+`sets`:
+: A list of metric sets.
+
+A reporter SHOULD include in each report every metric set that has changed since
+the previous report. Because counters are cumulative, a lost report reduces the
+time resolution of the data but does not lose counts.
+
+## Encodings
+
+A Metric Report is encoded in JSON {{JSON}} or in CBOR {{CBOR}}. Both encodings
+use the same data model and the same field names, as specified by the CDDL
+{{CDDL}} in {{cddl}}. The media types `application/moq-analytics+json` and
+`application/moq-analytics+cbor` identify the two encodings.
+
+JSON is easy to inspect and matches the encoding of the MSF catalog. CBOR is
+more compact and is RECOMMENDED for analytics tracks that report frequently or
+that share capacity with media.
+
+CBOR was chosen over schema-dependent binary formats such as Protocol Buffers
+{{PROTOBUF}} because CBOR is self-describing, so a receiver can skip members it
+does not understand without a schema, and because a single CDDL specification
+describes both the JSON and CBOR encodings.
+
+## Example {#example}
+
+The following JSON Metric Report contains three metric sets from a subscriber:
+
+~~~ json
+{
+  "version": "draft-00",
+  "reporter": { "id": "c7f3a1", "role": "subscriber" },
+  "generatedAt": 1790438400250,
+  "sequence": 42,
+  "sets": [
+    {
+      "type": "transport",
+      "id": "T1",
+      "timestamp": 1790438400200,
+      "bytesReceived": 48213377,
+      "packetsLost": 112,
+      "smoothedRtt": 0.031,
+      "availableBitrate": 1800000
+    },
+    {
+      "type": "inbound-track",
+      "id": "IT1",
+      "timestamp": 1790438400200,
+      "trackName": "video",
+      "deliveryMode": "subgroup",
+      "objectsReceived": 5412,
+      "objectsLost": 3,
+      "largestLocation": { "group": 180, "object": 11 },
+      "latency": {
+        "count": 5412,
+        "sum": 437.9,
+        "bounds": [0.05, 0.1, 0.25, 0.5],
+        "counts": [4101, 1122, 170, 16, 3]
+      }
+    },
+    {
+      "type": "playback",
+      "id": "P1",
+      "timestamp": 1790438400200,
+      "trackIds": ["IT1"],
+      "state": "playing",
+      "bufferLevel": 1.35,
+      "liveLatency": 2.1,
+      "stallCount": 1,
+      "totalStallTime": 0.42
+    }
+  ]
 }
 ~~~
-{: title="Conceptual Report Structure"}
-
-The structured model is intentionally conceptual. A carriage document MAY use a
-binary, JSON, CBOR, catalog-defined, or metrics-system-native encoding. It MUST
-define how metric type, unit, timestamp, reset, and observation interval are
-represented.
-
-Unknown metric names MAY be ignored. Unknown fields in an extensible report
-SHOULD be ignored unless the carriage document specifies a stricter rule. A
-receiver SHOULD preserve unknown samples when forwarding an opaque report.
-
-This document does not define a destination URI or relay forwarding behavior
-for reports. A carriage or authorization document that permits a report to
-leave the delivery path MUST define destination authorization, loop prevention,
-replay handling, and privacy requirements. Those semantics cannot be inferred
-from a report field alone.
+{: title="Example Metric Report"}
 
 
-# Carriage and Integration {#carriage}
+# Delivery over MoQT {#delivery}
 
-## Metrics Tracks and MSF
+## Analytics Tracks {#analytics-tracks}
 
-MSF {{MSF}} defines catalog and track conventions for logs and metrics tracks,
-including a packaging value and a resource-oriented metrics payload derived from
-{{MOQMETRICS}}. This document does not replace that payload. A future revision
-MAY define a profile or mapping that carries this registry in an MSF metrics
-track.
+A reporter delivers Metric Reports by publishing them as objects on an
+analytics track. Analytics tracks are ordinary MoQT tracks, so subscription,
+relay forwarding, caching, and FETCH all follow {{MOQT}}. No report-level
+routing fields are needed.
 
-An implementation using an MSF metrics track SHOULD identify:
+Analytics tracks map Metric Reports onto MoQT objects as follows:
 
-* the associated media or session scope;
-* the reporter role and reporting direction;
-* whether the payload is a registry sample, a time series, or a feedback report;
-  and
-* the lifetime, authorization, and intended collector of the metrics track.
+* Each group carries the reports generated at one time. The Group ID SHOULD be
+  the `generatedAt` value of the reports in the group, consistent with the MSF
+  metrics track. Group IDs MUST increase.
+* Each object carries exactly one complete Metric Report. A reporter MAY split
+  the metric sets generated at one time across several objects in the same
+  group, for example to limit object size. Each such object MUST be a complete
+  Metric Report that can be decoded independently.
+* The encoding is identified by the catalog ({{catalog}}) or by configuration
+  ({{configured}}). All objects on a track use the same encoding.
 
-## Feedback Tracks
+Analytics are usually less urgent than media. A reporter SHOULD assign analytics
+tracks a publisher priority that schedules media objects ahead of analytics
+objects on the same session, so that analytics use capacity that media leaves
+unused. A reporter MAY use the delivery timeout mechanism of {{MOQT}} to discard
+reports that are no longer timely, and MAY send small reports as datagrams.
 
-A feedback track is a reporting mechanism, not a complete metrics ontology. For
-example, {{MOQFEEDBACK}} defines per-object delivery statuses and summary
-metrics carried in feedback tracks. The registry in this document can provide
-names and semantics for optional summary fields, but it MUST NOT be used to
-redefine a feedback track's lifecycle, routing, or per-object encoding.
+When MSF is in use, a reporter MAY compress objects using the compression
+signaling defined in {{MSF}}.
 
-A feedback report SHOULD distinguish:
+## Catalog-Directed Delivery {#catalog}
 
-* transport feedback used by congestion control;
-* MoQT delivery feedback used by a publisher or relay; and
-* application or playback feedback used by an encoder, agent, or player.
+An MSF {{MSF}} or CMSF {{CMSF}} catalog requests analytics by declaring an
+analytics track in its `publishTracks` array. The track object:
 
-## Event Timeline and Packaging-Specific Tracks
+* MUST have a `packaging` value of `moqanalytics`;
+* MUST have a `role` value of `metrics`;
+* MUST have a `mimeType` value identifying the encoding; and
+* MAY include the `connectionUri` and `token` fields defined by {{MSF}}, to
+  direct reports to a collector other than the catalog's origin and to
+  authorize publishing.
 
-MSF Event Timeline tracks provide a carrier for event-oriented telemetry, such
-as CMCD reports. An Event Timeline payload identifies its own event type and
-indexing rules. This document defines reusable metric semantics; it does not
-require all events to be converted into scalar metrics.
+This document defines two additional track object fields:
 
-LOC {{LOC}} and CMSF {{CMSF}} MAY define packaging-specific metrics. Such
-metrics SHOULD follow the scope, type, unit, and cardinality principles of this
-document where applicable, and SHOULD identify packaging-specific dependencies.
-A CMAF or LOC metric MUST NOT be presented as a transport metric when its
-observation requires parsing media samples or container boxes.
+`metricSets`:
+: An array of metric set types the subscriber is asked to report. A subscriber
+  SHOULD report the requested sets that it can measure, and SHOULD NOT report
+  other sets.
 
-## Export Formats
+`reportInterval`:
+: The requested time between reports, in integer milliseconds.
 
-An implementation MAY export the registry through OpenMetrics {{OPENMETRICS}},
-OpenTelemetry {{OTEL}}, qlog {{MOQ-QLOG}}, or another monitoring system. qlog is
-particularly appropriate for event traces and protocol correlation; it is not a
-substitute for a low-cardinality time-series registry. OpenMetrics and
-OpenTelemetry are appropriate references for metric types, attributes,
-temporality, and export, but this document remains responsible for
-MoQT-specific scope and semantics.
+The `namespace` and `name` fields give the analytics track. The `namespace`
+MAY contain the placeholder `%reporterId%`, which the subscriber replaces with
+its reporter `id`.
+
+~~~ json
+"publishTracks": [
+  {
+    "namespace": "analytics.example.com/v1/%reporterId%",
+    "name": "qoe",
+    "packaging": "moqanalytics",
+    "role": "metrics",
+    "mimeType": "application/moq-analytics+cbor",
+    "connectionUri": "moqt://collector.example.com:4443",
+    "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "metricSets": ["transport", "inbound-track", "playback"],
+    "reportInterval": 2000
+  }
+]
+~~~
+{: title="Catalog Requesting Analytics"}
+
+Because CMSF uses the MSF catalog, the same declaration applies to CMSF
+catalogs. A catalog MAY declare several analytics tracks, for example one with
+a short interval for QoE metrics and one with a long interval for transport
+metrics.
+
+## Reporter-Configured Delivery {#configured}
+
+A reporter MAY be configured by its application or operator with a collector
+endpoint, credentials, an analytics track, an encoding, metric sets, and a
+reporting interval. The reporter establishes a MoQT session to the collector,
+if needed, and publishes the analytics track as described in
+{{analytics-tracks}}.
+
+This mode supports deployments that do not use MSF, and lets publishers and
+relays report to an operator's collector.
+
+## Collector Subscription
+
+A relay or publisher MAY publish its analytics track continuously within a
+namespace that collectors can subscribe to. Collectors then subscribe only to
+the reporters and tracks they need, and relays cache recent reports for later
+retrieval with FETCH. This allows metrics to be pulled on demand rather than
+pushed to every collector.
+
+
+# Export to Monitoring Systems {#export}
+
+An implementation MAY export metric sets to OpenMetrics {{OPENMETRICS}},
+OpenTelemetry {{OTEL}}, or another monitoring system. To keep metric names
+consistent across implementations, an exported metric name SHOULD be formed by
+joining the following with underscores:
+
+1. the prefix `moq`;
+2. the metric set type, with hyphens replaced by underscores;
+3. the member name, converted from lowerCamelCase to lowercase words separated
+   by underscores; and
+4. for counters, the suffix `total`.
+
+For example, `objectsLost` in an `inbound-track` set is exported as
+`moq_inbound_track_objects_lost_total`. Histograms map to explicit bucket
+histograms. Identifying attributes such as `kind` or `trackName` MAY be exported
+as labels, subject to the guidance in {{cardinality}}.
+
+qlog {{MOQ-QLOG}} is better suited than metric sets for event traces and
+protocol debugging. An implementation MAY correlate metric sets with qlog
+events using a session identifier.
 
 
 # Mappings from Existing Vocabularies
 
 ## WebRTC Statistics
 
-Many WebRTC-based endpoints can obtain statistics through
-`RTCPeerConnection.getStats()`, which returns an `RTCStatsReport`
-{{WEBRTC-STATS}}. The presence and quality of a statistic depend on the
-endpoint, browser, media pipeline, and codec. A MoQT implementation MUST NOT
-claim that a corresponding WebRTC statistic exists when it has not been
-collected at the relevant boundary.
+The metric sets in this document follow the model of the WebRTC statistics API
+{{WEBRTC-STATS}}, and media members share names with WebRTC statistics where
+the definitions match. The following WebRTC statistics types correspond to
+metric set types:
 
-The following mappings are informative starting points:
+| WebRTC type | Metric set type |
+|---|---|
+| `outbound-rtp`, `media-source` | `media-source` |
+| `inbound-rtp` | `inbound-media` |
+| `candidate-pair`, `transport` | `transport` |
+| `codec` | `codec` member of media sets |
+{: title="WebRTC Statistics Types"}
 
-`outbound-rtp.bytesSent`:
-: Maps to `moq_media_encoded_bitrate_bps`. Derive a rate over an interval; identify whether bytes are encoded media or include packet overhead.
+The following members differ from their WebRTC counterparts:
 
-`outbound-rtp.framesPerSecond`:
-: Maps to `moq_media_frame_rate_fps`. Identify the encoded or sent stage.
+* `currentRoundTripTime` corresponds to `latestRtt` or `smoothedRtt`, depending
+  on how the implementation computes it;
+* `availableOutgoingBitrate` corresponds to `availableBitrate`;
+* `frameWidth` and `frameHeight` correspond to `width` and `height`; and
+* RTP `jitter` is not equivalent to object `interarrival` in an
+  `inbound-track` set.
 
-`outbound-rtp.framesEncoded`:
-: Maps to `moq_media_frames_encoded_total`. Media metric; not a MoQT object count.
-
-`outbound-rtp.keyFramesEncoded`:
-: Maps to `moq_media_keyframes_encoded_total`. Useful for random-access behavior when present.
-
-`inbound-rtp.bytesReceived`:
-: Maps to `moq_media_received_bitrate_bps`. Derive a rate and distinguish media bytes from transport bytes.
-
-`inbound-rtp.jitter`:
-: Maps to `moq_media_jitter_seconds`. RTP jitter is not equivalent to MoQT object inter-arrival jitter.
-
-`inbound-rtp.framesDecoded`:
-: Maps to `moq_media_frames_decoded_total`. Decoder observation.
-
-`inbound-rtp.framesDropped`:
-: Maps to `moq_sub_dropped_frames_total`. Dropped-frame semantics depend on the implementation.
-
-`inbound-rtp.totalDecodeTime`:
-: Maps to `moq_media_decode_time_seconds`. Report cumulatively or derive a histogram according to the exporter.
-
-`codec.mimeType`:
-: Maps to `moq_media_codec`. Codec metadata, not a numeric metric.
-
-`candidate-pair.currentRoundTripTime`:
-: Maps to `moq_link_rtt_seconds`. Candidate-pair RTT is not necessarily the same as MoQT application RTT.
-
-`candidate-pair.availableOutgoingBitrate`:
-: Maps to `moq_link_available_bitrate_bps`. An estimate, not an achieved media bitrate.
-
-`candidate-pair.bytesSent`:
-: Maps to `moq_link_bytes_sent_total`. Transport-path observation where available.
-
-`candidate-pair.bytesReceived`:
-: Maps to `moq_link_bytes_received_total`. Transport-path observation where available.
-
-`transport` or `candidate-pair` state:
-: Maps to link or session state attributes. State names MUST retain their source semantics.
-
-Metric names SHOULD NOT imply an exact equivalence between RTP packet metrics
-and MoQT object metrics. A media endpoint can export both families when it has
-both observations.
+A MoQT implementation MUST NOT report a member derived from a WebRTC statistic
+that it has not collected at the corresponding point.
 
 ## CMCD and CMSD
 
-Common Media Client Data {{CMCD}} describes client-side playback and delivery
-context in HTTP adaptive streaming. Common Media Server Data {{CMSD}} describes
-server- or intermediary-side information associated with media delivery. The two
-vocabularies are complementary: CMCD primarily describes what the client knows
-or requests; CMSD primarily describes what a server or intermediary knows or
-recommends.
+Common Media Client Data {{CMCD}} and Common Media Server Data {{CMSD}} carry
+client and server delivery information in HTTP adaptive streaming. MoQT has no
+HTTP requests or responses, so their keys are not carried directly. The
+following correspondence is informative:
 
-MoQT has no HTTP segment request or response header. Therefore:
-
-* CMCD and CMSD concepts can inform MoQT metric definitions;
-* CMCD and CMSD fields MUST NOT be treated as wire-compatible MoQT fields
-  without a carriage profile; and
-* CMCD and CMSD carriage through HTTP headers or query parameters is outside the
-  scope of this document.
-
-The following mapping is informative:
-
-| CMCD/CMSD concept | MoQT analogue | Perspective |
+| Key | Concept | Member |
 |---|---|---|
-| CMCD measured throughput (`mtp`) | `moq_link_available_bitrate_bps` or `moq_media_received_bitrate_bps` | Subscriber; the measurement method MUST be stated. |
-| CMCD buffer length (`bl`) | `moq_sub_buffer_level_seconds` | Subscriber media pipeline. |
-| CMCD buffer starvation (`bs`) | `moq_sub_buffer_starvation_total` | Subscriber playback. |
-| CMCD deadline (`dl`) | `moq_sub_deadline_seconds` | Subscriber application deadline, not a transport timeout. |
-| CMCD startup concepts | `moq_sub_startup_delay_seconds` | Subscriber media pipeline. |
-| CMCD live-stream latency | `moq_sub_live_latency_seconds` | Requires a clock or timeline definition. |
-| CMCD dropped and non-rendered concepts | `moq_sub_dropped_frames_total`, `moq_sub_non_rendered_total` | Subscriber media pipeline. |
-| CMSD estimated throughput (`etp`) | `moq_link_available_bitrate_bps` | Server or relay estimate; not the subscriber's achieved rate. |
-| CMSD max suggested bitrate (`mb`) | `moq_relay_suggested_bitrate_bps` | A recommendation, not a measured bitrate. |
-| CMSD response delay (`rd`) | `moq_relay_request_processing_seconds` | Relay or server processing. |
-| CMSD held time (`ht`) | `moq_relay_held_seconds` | Relay or server queue or policy delay. |
-| CMSD availability time (`at`) | `moq_relay_object_availability_seconds` | Requires a defined origin and time base. |
-| CMSD duress (`du`) | `moq_relay_duress` | Relay operational state. |
-{: title="Informative CMCD and CMSD Mapping"}
+| CMCD `bl` | buffer length | `playback.bufferLevel` |
+| CMCD `bs` | buffer starvation | `playback.stallCount` |
+| CMCD `dl` | deadline | `playback.deadline` |
+| CMCD `mtp` | measured throughput | `inbound-media.bitrate` |
+| CMCD `su` | startup | `playback.state` |
+| CMSD `etp` | estimated throughput | `transport.availableBitrate` |
+| CMSD `rd` | response delay | `relay.processingTime` |
+| CMSD `ht` | held time | `relay.heldTime` |
+| CMSD `at` | availability time | `relay.availabilityTime` |
+| CMSD `du` | duress | `relay.duress` |
+{: title="CMCD and CMSD Correspondence"}
 
-The mapping intentionally distinguishes measured values, recommendations, and
-playback state. For example, a CMSD suggested bitrate is not the same metric as
-the subscriber's measured throughput, and CMCD buffer length is not the same as
-a relay's object queue.
-
-## qlog and Feedback
-
-The MoQT qlog event definitions {{MOQ-QLOG}} define structured protocol events
-such as control message, subgroup, datagram, and FETCH events. These events can
-provide trace-level evidence for a metric, but qlog records and time-series
-metrics serve different purposes. An implementation MAY correlate them using a
-session or trace identifier.
-
-{{MOQFEEDBACK}} defines delivery-quality feedback and a feedback-track
-mechanism. This document provides reusable metric names and semantic guidance;
-the feedback mechanism defines its own report format, negotiation, routing, and
-lifecycle.
+CMCD measured throughput is a client measurement of achieved throughput,
+whereas CMSD estimated throughput is a server estimate. A CMSD maximum
+suggested bitrate is a recommendation rather than a measurement and has no
+corresponding member.
 
 
 # Security Considerations
 
-Metric reports can be used to influence operational decisions such as rate
-adaptation, relay selection, and capacity planning. Reports are therefore
-subject to spoofing, injection, replay, and resource-exhaustion attacks.
+Metric Reports can influence operational decisions such as rate adaptation,
+relay selection, and capacity planning, and are therefore targets for
+spoofing, injection, and replay.
 
-Implementations and deployments SHOULD:
+A Metric Report MUST NOT be assumed to be accurate merely because it arrived
+over an authenticated MoQT session. A subscriber can report incorrect playback
+state, and a relay can report incorrect operational state. Collectors SHOULD
+treat reports as claims made by the named reporter.
 
-* apply authorization to metric collection separately from media delivery;
-* bound label cardinality and report sizes before forwarding or export, so that
-  a reporter cannot cause unbounded storage or processing at a collector;
-* distinguish measurements from untrusted recommendations or peer assertions;
-* protect reports in transit using the security of the selected carriage;
-* use end-to-end object protection {{SECURE-OBJECTS}} when relays must not read
-  application metrics;
-* apply replay, freshness, and sequence handling when reports influence control
-  decisions; and
-* prevent a reporter from selecting an unauthorized collector or causing a
-  node to issue requests to an arbitrary destination.
+A catalog that includes a `connectionUri` directs subscribers to connect to
+another endpoint. A subscriber MUST NOT follow a `connectionUri` from a catalog
+that it did not receive from an authenticated, authorized source, since
+otherwise an attacker could direct subscribers to connect to arbitrary hosts.
+Tokens in the catalog SHOULD be scoped to the analytics track and have a short
+lifetime.
 
-A metric report MUST NOT be assumed trustworthy merely because it arrived over
-an authenticated MoQT session. A subscriber can report incorrect playback state,
-and a relay can report incorrect operational state. Consumers SHOULD treat
-reports as observations made by a named reporter, not as authoritative truth
-about another node.
+Collectors and relays SHOULD limit the size and rate of Metric Reports and the
+number of distinct metric sets accepted from each reporter, to limit resource
+exhaustion. Relays SHOULD apply the same authorization to analytics tracks as
+to other tracks. When relays must not read analytics, the reporter can protect
+objects end to end using {{SECURE-OBJECTS}}.
 
 
 # Privacy Considerations
 
-Metrics can expose namespace and track names, subscriber activity, network
-topology, timing, codec and device information, playback state, and operational
-load. They can also be used to fingerprint a user or infer content consumption.
+Metrics can reveal track names, viewing behavior, network characteristics,
+device capabilities, and topology, and can be used to identify or track users.
 
-Implementations and deployments SHOULD:
-
-* avoid raw user identifiers and unconstrained object identifiers in labels (see
-  {{labels}});
-* aggregate subscriber and playback metrics before export where per-subscriber
-  detail is not required; and
-* document retention and aggregation policies for subscriber and playback
-  metrics.
+A reporter `id` SHOULD NOT be derived from a stable hardware identifier, such as
+a network interface hardware address, and subscribers SHOULD use a reporter `id`
+that is not linkable across sessions unless the user has agreed otherwise.
+Reporters SHOULD report track names only when they are needed
+({{cardinality}}). Collectors SHOULD aggregate subscriber metrics where
+individual detail is not needed, and SHOULD document retention policies for
+subscriber metrics.
 
 
 # IANA Considerations
 
-This document has no IANA actions.
+This document has no IANA actions. A future revision is expected to request:
 
-A future revision might request a registry for MoQT metric names once the
-metric namespace, registration policy, compatibility model, and relationship to
-other MoQT metrics work are stable. A carriage document that defines a new track
-property, message type, or catalog value is responsible for its own IANA
-considerations.
+* registration of the media types `application/moq-analytics+json` and
+  `application/moq-analytics+cbor`;
+* registration of the MSF packaging value `moqanalytics`, if MSF establishes a
+  registry for packaging values; and
+* a registry of metric set types and members.
 
 
 # Use of Generative AI
@@ -815,26 +1025,269 @@ document. All AI-generated content was reviewed and approved by the author.
 
 --- back
 
+# CDDL {#cddl}
+
+The following CDDL {{CDDL}} specifies the Metric Report for both the JSON and
+CBOR encodings.
+
+~~~ cddl
+metric-report = {
+  version: tstr,
+  reporter: reporter,
+  generatedAt: timestamp,
+  ? sequence: uint,
+  sets: [* metric-set],
+  * ext-key => any,
+}
+
+reporter = {
+  id: tstr,
+  role: "publisher" / "subscriber" / "relay",
+  * ext-key => any,
+}
+
+; Extension keys are reverse domain names, e.g., "com.example.fooBar"
+ext-key = tstr .regexp ext-re
+ext-re = "[a-z0-9-]+([.][a-z0-9-]+)+[.][A-Za-z][A-Za-z0-9-]*"
+
+timestamp = number   ; milliseconds since the Unix epoch
+seconds = number     ; duration or cumulative time
+counter = uint       ; cumulative over the lifetime of the set
+bps = number         ; bits per second
+
+histogram = {
+  count: uint,
+  sum: number,
+  ? min: number,
+  ? max: number,
+  ? bounds: [* number],  ; ascending upper bounds
+  ? counts: [* uint],    ; one more entry than bounds
+}
+
+location = {
+  group: uint,
+  object: uint,
+}
+
+set-common<T> = (
+  type: T,
+  id: tstr,
+  timestamp: timestamp,
+)
+
+track-ref = (
+  ? namespace: [* tstr],
+  ? trackName: tstr,
+)
+
+metric-set = session-set / requests-set / transport-set /
+             outbound-track-set / inbound-track-set /
+             subscription-set / media-source-set /
+             inbound-media-set / playback-set / relay-set /
+             extension-set
+
+session-set = {
+  set-common<"session">,
+  ? transportId: tstr,
+  ? version: tstr,
+  ? binding: "quic" / "webtransport",
+  ? state: "connecting" / "established" / "draining" / "closed",
+  ? setupTime: seconds,
+  ? goawaysReceived: counter,
+  * ext-key => any,
+}
+
+requests-set = {
+  set-common<"requests">,
+  kind: "subscribe" / "fetch" / "publish" / "publish-namespace" /
+        "subscribe-namespace" / "track-status" / tstr,
+  ? sessionId: tstr,
+  ? sent: counter,
+  ? received: counter,
+  ? succeeded: counter,
+  ? failed: counter,
+  ? active: uint,
+  ? responseTime: histogram,
+  ? errorCodes: [* [code: uint, count: counter]],
+  * ext-key => any,
+}
+
+transport-set = {
+  set-common<"transport">,
+  ? sessionId: tstr,
+  ? bytesSent: counter,
+  ? bytesReceived: counter,
+  ? packetsSent: counter,
+  ? packetsReceived: counter,
+  ? packetsLost: counter,
+  ? latestRtt: seconds,
+  ? minRtt: seconds,
+  ? smoothedRtt: seconds,
+  ? rttVar: seconds,
+  ? cwnd: uint,
+  ? bytesInFlight: uint,
+  ? availableBitrate: bps,
+  ? cwndBlockedTime: seconds,
+  ? flowBlockedTime: seconds,
+  ? streamsOpened: counter,
+  ? streamsActive: uint,
+  ? datagramsSent: counter,
+  ? datagramsReceived: counter,
+  ? datagramsLost: counter,
+  * ext-key => any,
+}
+
+delivery-mode = "subgroup" / "datagram" / "mixed"
+
+outbound-track-set = {
+  set-common<"outbound-track">,
+  track-ref,
+  ? sessionId: tstr,
+  ? deliveryMode: delivery-mode,
+  ? priority: uint,
+  ? objectsSent: counter,
+  ? bytesSent: counter,
+  ? groupsSent: counter,
+  ? objectsDropped: counter,
+  ? streamsReset: counter,
+  ? subscriptions: uint,
+  ? largestLocation: location,
+  * ext-key => any,
+}
+
+inbound-track-set = {
+  set-common<"inbound-track">,
+  track-ref,
+  ? sessionId: tstr,
+  ? deliveryMode: delivery-mode,
+  ? objectsReceived: counter,
+  ? bytesReceived: counter,
+  ? groupsReceived: counter,
+  ? groupsCompleted: counter,
+  ? objectsLost: counter,
+  ? objectsLate: counter,
+  ? duplicates: counter,
+  ? streamsReset: counter,
+  ? largestLocation: location,
+  ? interarrival: histogram,
+  ? latency: histogram,
+  ? groupDuration: histogram,
+  * ext-key => any,
+}
+
+subscription-set = {
+  set-common<"subscription">,
+  track-ref,
+  ? sessionId: tstr,
+  ? trackId: tstr,
+  ? requestId: uint,
+  ? state: "pending" / "active" / "done" / "error",
+  ? forward: bool,
+  ? priority: uint,
+  ? groupOrder: "ascending" / "descending",
+  ? responseTime: seconds,
+  ? repairRequests: counter,
+  * ext-key => any,
+}
+
+media-kind = "audio" / "video" / tstr
+
+media-source-set = {
+  set-common<"media-source">,
+  ? trackId: tstr,
+  ? kind: media-kind,
+  ? codec: tstr,
+  ? bitrate: bps,
+  ? framesEncoded: counter,
+  ? keyFramesEncoded: counter,
+  ? framesPerSecond: number,
+  ? keyFrameInterval: seconds,
+  ? width: uint,
+  ? height: uint,
+  ? totalEncodeTime: seconds,
+  * ext-key => any,
+}
+
+inbound-media-set = {
+  set-common<"inbound-media">,
+  ? trackId: tstr,
+  ? kind: media-kind,
+  ? codec: tstr,
+  ? bitrate: bps,
+  ? framesReceived: counter,
+  ? framesDecoded: counter,
+  ? keyFramesDecoded: counter,
+  ? framesDropped: counter,
+  ? framesPerSecond: number,
+  ? totalDecodeTime: seconds,
+  ? jitter: seconds,
+  ? width: uint,
+  ? height: uint,
+  ? concealedSamples: counter,
+  * ext-key => any,
+}
+
+playback-set = {
+  set-common<"playback">,
+  ? trackIds: [* tstr],
+  ? renderGroup: uint,
+  ? state: "startup" / "playing" / "paused" / "stalled" / "ended",
+  ? startupTime: seconds,
+  ? bufferLevel: seconds,
+  ? targetLatency: seconds,
+  ? liveLatency: seconds,
+  ? deadline: seconds,
+  ? stallCount: counter,
+  ? totalStallTime: seconds,
+  ? nonRendered: counter,
+  ? switches: counter,
+  * ext-key => any,
+}
+
+relay-set = {
+  set-common<"relay">,
+  ? sessions: uint,
+  ? subscriptions: uint,
+  ? fetches: uint,
+  ? cacheHits: counter,
+  ? cacheMisses: counter,
+  ? cacheBytes: uint,
+  ? processingTime: histogram,
+  ? heldTime: histogram,
+  ? availabilityTime: histogram,
+  ? duress: number,
+  * ext-key => any,
+}
+
+extension-set = {
+  set-common<ext-key>,
+  * tstr => any,
+}
+~~~
+{: title="Metric Report CDDL"}
+
 # Open Issues
 {:removeinrfc="true"}
 
 The following questions are open for discussion:
 
-1. Which metrics belong in a small interoperable base registry, and which should
-   remain implementation or packaging profiles?
-2. Should the registry standardize `moq_` names, semantic identifiers
-   independent of export names, or both?
-3. Which labels can be safely standardized across deployments without making
-   namespace, track, subscriber, or topology privacy assumptions universal?
-4. Should structured reports use a common encoding, or should MSF, feedback
-   tracks, and external exports define separate encodings over a shared
-   registry?
-5. Which feedback metrics defined in {{MOQFEEDBACK}} should be referenced by name
-   rather than duplicated?
-6. Which media and QoE metrics can be defined without requiring a particular
-   player, codec, or WebRTC implementation?
-7. How should this document align with qlog, OpenMetrics, OpenTelemetry, and
-   future relay diagnostics work?
+1. Which metric sets and members belong in a base set that all reporters are
+   expected to support?
+2. Should the CBOR encoding assign integer keys to fields and members to reduce
+   size further?
+3. Should histograms and counters support delta temporality in addition to
+   cumulative temporality?
+4. Should analytics tracks use a new MSF packaging value, as proposed here, or a
+   profile of the `moqmetrics` packaging of {{MOQMETRICS}}? MSF currently lists
+   packaging values without a registry.
+5. Should analytics track names follow the granularity levels used by MSF
+   metrics tracks?
+6. How should track namespaces, which are tuples of byte strings in {{MOQT}}, be
+   represented when they are not valid text?
+7. Which members of the feedback reports in {{MOQFEEDBACK}} should be aligned
+   with members defined here?
+8. What clock synchronization should be assumed for `latency` and
+   `liveLatency`?
 
 # Acknowledgments
 {:numbered="false"}
