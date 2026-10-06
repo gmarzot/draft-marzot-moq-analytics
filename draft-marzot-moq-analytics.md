@@ -46,7 +46,9 @@ informative:
   MOQMETRICS: I-D.jennings-moq-metrics
   MOQ-QLOG: I-D.pardue-moq-qlog-moq-events
   SECURE-OBJECTS: I-D.ietf-moq-secure-objects
+  QLOG: I-D.ietf-quic-qlog-main-schema
   RFC9000:
+  RFC9254:
   WEBRTC-STATS:
     title: "Identifiers for WebRTC's Statistics API"
     target: https://www.w3.org/TR/webrtc-stats/
@@ -98,10 +100,11 @@ transport.
 This document defines a set of MoQT metric sets, modeled on WebRTC statistics:
 typed groups of optional, camelCase members describing sessions, transports,
 tracks, subscriptions, media pipelines, playback, and relays. It defines a
-Metric Report that carries metric sets, specified in CDDL with JSON and CBOR
-encodings. It also defines how Metric Reports are delivered as objects on MoQT
-analytics tracks, either to an endpoint directed by an MSF or CMSF catalog or
-to a collector configured by the reporter.
+Metric Report that carries metric sets, specified in CDDL as a data model that
+is independent of encoding, with JSON and CBOR encodings. It also defines how
+Metric Reports are delivered as objects on MoQT analytics tracks, either to an
+endpoint directed by an MSF or CMSF catalog or to a collector configured by the
+reporter.
 
 --- middle
 
@@ -137,8 +140,9 @@ Metric sets ({{sets}}):
   that a reporter includes only what it can measure.
 
 Metric Reports ({{report}}):
-: A container that carries a batch of metric sets from one reporter, specified
-  in CDDL {{CDDL}} with a JSON {{JSON}} encoding and a CBOR {{CBOR}} encoding.
+: A container that carries a batch of metric sets from one reporter. Its data
+  model is specified in CDDL {{CDDL}} independently of any encoding, and this
+  document defines a JSON {{JSON}} encoding and a CBOR {{CBOR}} encoding of it.
 
 Delivery ({{delivery}}):
 : A mapping of Metric Reports onto the objects of a MoQT analytics track,
@@ -720,21 +724,61 @@ A reporter SHOULD include in each report every metric set that has changed since
 the previous report. Because counters are cumulative, a lost report reduces the
 time resolution of the data but does not lose counts.
 
-## Encodings
+## Data Model and Encodings {#encodings}
 
-A Metric Report is encoded in JSON {{JSON}} or in CBOR {{CBOR}}. Both encodings
-use the same data model and the same field names, as specified by the CDDL
-{{CDDL}} in {{cddl}}. The media types `application/moq-analytics+json` and
-`application/moq-analytics+cbor` identify the two encodings.
+The metric sets in {{sets}} and the Metric Report defined in this section form a
+data model that is independent of encoding. The CDDL {{CDDL}} in {{cddl}}
+specifies that data model. Metric set types, member names, value types, and
+units belong to the data model and are the same in every encoding.
 
+This document defines two encodings of the data model:
+
+JSON:
+: The JSON {{JSON}} encoding, identified by the media type
+  `application/moq-analytics+json`.
+
+CBOR:
+: The CBOR {{CBOR}} encoding, identified by the media type
+  `application/moq-analytics+cbor`.
+
+Both encodings use the field and member names of the data model as map keys.
 JSON is easy to inspect and matches the encoding of the MSF catalog. CBOR is
 more compact and is RECOMMENDED for analytics tracks that report frequently or
-that share capacity with media.
+that share capacity with media. Reporters and collectors MUST support both
+encodings, so that any reporter can deliver reports to any collector.
 
-CBOR was chosen over schema-dependent binary formats such as Protocol Buffers
-{{PROTOBUF}} because CBOR is self-describing, so a receiver can skip members it
-does not understand without a schema, and because a single CDDL specification
-describes both the JSON and CBOR encodings.
+The data model is limited to values that both encodings can represent: maps
+with text keys, arrays, text strings, numbers, booleans, and null. A CBOR
+encoder MUST NOT use byte strings, tags, simple values other than false, true,
+and null, or non-finite floating-point values.
+
+Other specifications MAY define additional encodings, such as one using Protocol
+Buffers {{PROTOBUF}}. An additional encoding:
+
+* MUST be identified by its own media type;
+* MUST be able to represent every Metric Report that conforms to the CDDL in
+  {{cddl}}, such that converting a report to the encoding and then to JSON or
+  CBOR yields the same metric sets, members, and values;
+* MUST carry extension members and extension metric set types ({{extensions}})
+  in a form that a receiver can skip, and that a collector can convert to JSON
+  or CBOR, without knowing the definition of the extension; and
+* MAY identify metric set types and members by the numeric identifiers of the
+  registry described in {{iana}} rather than by name.
+
+A reporter uses an additional encoding only when a catalog ({{catalog}}) or its
+configuration ({{configured}}) selects that encoding. Because every encoding
+represents the same data model, a relay or collector can convert reports from
+one encoding to another without loss. This separation of data model and
+encoding follows qlog {{QLOG}}, whose CDDL schemas are independent of
+serialization format, and YANG-CBOR {{RFC9254}}, which can identify the nodes
+of a YANG data model by numeric identifiers instead of names.
+
+The compact encoding defined in this document is CBOR, rather than a
+schema-dependent format such as Protocol Buffers, because CBOR is
+self-describing. A receiver can decode, log, forward, and convert members that
+it does not understand, including extension members, without a schema. A
+schema-dependent format can skip unknown fields, but cannot interpret them
+without the schema that defines them.
 
 ## Example {#example}
 
@@ -826,7 +870,7 @@ analytics track in its `publishTracks` array. The track object:
 
 * MUST have a `packaging` value of `moqanalytics`;
 * MUST have a `role` value of `metrics`;
-* MUST have a `mimeType` value identifying the encoding; and
+* MUST have a `mimeType` value identifying the encoding ({{encodings}}); and
 * MAY include the `connectionUri` and `token` fields defined by {{MSF}}, to
   direct reports to a collector other than the catalog's origin and to
   authorize publishing.
@@ -844,6 +888,9 @@ This document defines two additional track object fields:
 The `namespace` and `name` fields give the analytics track. The `namespace`
 MAY contain the placeholder `%reporterId%`, which the subscriber replaces with
 its reporter `id`.
+
+A subscriber that does not support the encoding identified by `mimeType` MUST
+NOT publish that analytics track.
 
 ~~~ json
 "publishTracks": [
@@ -1005,7 +1052,7 @@ individual detail is not needed, and SHOULD document retention policies for
 subscriber metrics.
 
 
-# IANA Considerations
+# IANA Considerations {#iana}
 
 This document has no IANA actions. A future revision is expected to request:
 
@@ -1013,7 +1060,10 @@ This document has no IANA actions. A future revision is expected to request:
   `application/moq-analytics+cbor`;
 * registration of the MSF packaging value `moqanalytics`, if MSF establishes a
   registry for packaging values; and
-* a registry of metric set types and members.
+* a registry of metric set types and members, recording for each its name, a
+  numeric identifier, its value type and unit, and its defining specification.
+  Encodings that identify members by number ({{encodings}}) use these
+  identifiers.
 
 
 # Use of Generative AI
@@ -1027,8 +1077,9 @@ document. All AI-generated content was reviewed and approved by the author.
 
 # CDDL {#cddl}
 
-The following CDDL {{CDDL}} specifies the Metric Report for both the JSON and
-CBOR encodings.
+The following CDDL {{CDDL}} specifies the Metric Report data model. It applies
+directly to the JSON and CBOR encodings; other encodings represent it as
+described in {{encodings}}.
 
 ~~~ cddl
 metric-report = {
@@ -1273,20 +1324,24 @@ The following questions are open for discussion:
 
 1. Which metric sets and members belong in a base set that all reporters are
    expected to support?
-2. Should the CBOR encoding assign integer keys to fields and members to reduce
-   size further?
-3. Should histograms and counters support delta temporality in addition to
+2. Should the CBOR encoding use the numeric identifiers of the registry as map
+   keys, which reduces size but makes its keys differ from the JSON names, or
+   should integer keys be left to an additional encoding?
+3. Is support for both JSON and CBOR a reasonable requirement for constrained
+   reporters, or should one encoding be mandatory for reporters and both
+   mandatory only for collectors?
+4. Should histograms and counters support delta temporality in addition to
    cumulative temporality?
-4. Should analytics tracks use a new MSF packaging value, as proposed here, or a
+5. Should analytics tracks use a new MSF packaging value, as proposed here, or a
    profile of the `moqmetrics` packaging of {{MOQMETRICS}}? MSF currently lists
    packaging values without a registry.
-5. Should analytics track names follow the granularity levels used by MSF
+6. Should analytics track names follow the granularity levels used by MSF
    metrics tracks?
-6. How should track namespaces, which are tuples of byte strings in {{MOQT}}, be
+7. How should track namespaces, which are tuples of byte strings in {{MOQT}}, be
    represented when they are not valid text?
-7. Which members of the feedback reports in {{MOQFEEDBACK}} should be aligned
+8. Which members of the feedback reports in {{MOQFEEDBACK}} should be aligned
    with members defined here?
-8. What clock synchronization should be assumed for `latency` and
+9. What clock synchronization should be assumed for `latency` and
    `liveLatency`?
 
 # Acknowledgments
