@@ -14,10 +14,11 @@ transport.
        This document defines a set of MoQT metric sets, modeled on WebRTC statistics:
 typed groups of optional, camelCase members describing sessions, transports,
 tracks, subscriptions, media pipelines, playback, and relays. It defines a
-Metric Report that carries metric sets, specified in CDDL with JSON and CBOR
-encodings. It also defines how Metric Reports are delivered as objects on MoQT
-analytics tracks, either to an endpoint directed by an MSF or CMSF catalog or
-to a collector configured by the reporter. 
+Metric Report that carries metric sets, specified in CDDL as a data model that
+is independent of encoding, with JSON and CBOR encodings. It also defines how
+Metric Reports are delivered as objects on MoQT analytics tracks, either to an
+endpoint directed by an MSF or CMSF catalog or to a collector configured by the
+reporter. 
     " name="description">
 <meta content="xml2rfc 3.34.1" name="generator">
 <meta content="media over quic" name="keyword">
@@ -1059,7 +1060,7 @@ svg {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Marzot</td>
-<td class="center">Expires 6 April 2027</td>
+<td class="center">Expires 10 April 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1072,12 +1073,12 @@ svg {
 <dd class="internet-draft">draft-marzot-moq-analytics-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-10-03" class="published">3 October 2026</time>
+<time datetime="2026-10-07" class="published">7 October 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-04-06">6 April 2027</time></dd>
+<dd class="expires"><time datetime="2027-04-10">10 April 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1097,10 +1098,11 @@ transport.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
 <p id="section-abstract-2">This document defines a set of MoQT metric sets, modeled on WebRTC statistics:
 typed groups of optional, camelCase members describing sessions, transports,
 tracks, subscriptions, media pipelines, playback, and relays. It defines a
-Metric Report that carries metric sets, specified in CDDL with JSON and CBOR
-encodings. It also defines how Metric Reports are delivered as objects on MoQT
-analytics tracks, either to an endpoint directed by an MSF or CMSF catalog or
-to a collector configured by the reporter.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
+Metric Report that carries metric sets, specified in CDDL as a data model that
+is independent of encoding, with JSON and CBOR encodings. It also defines how
+Metric Reports are delivered as objects on MoQT analytics tracks, either to an
+endpoint directed by an MSF or CMSF catalog or to a collector configured by the
+reporter.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
 </section>
 <section class="note rfcEditorRemove" id="section-note.1">
       <h2 id="name-about-this-document">
@@ -1137,7 +1139,7 @@ to a collector configured by the reporter.<a href="#section-abstract-2" class="p
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 6 April 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 10 April 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1245,7 +1247,7 @@ to a collector configured by the reporter.<a href="#section-abstract-2" class="p
             <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-metric-reports" class="internal xref">Metric Reports</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
-                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-encodings" class="internal xref">Encodings</a></p>
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-data-model-and-encodings" class="internal xref">Data Model and Encodings</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
                 <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-example" class="internal xref">Example</a></p>
@@ -1360,8 +1362,9 @@ that a reporter includes only what it can measure.<a href="#section-1.1-2.2.1" c
           <dd class="break"></dd>
 <dt id="section-1.1-2.3">Metric Reports (<a href="#report" class="auto internal xref">Section 5</a>):</dt>
           <dd style="margin-left: 1.5em" id="section-1.1-2.4">
-            <p id="section-1.1-2.4.1">A container that carries a batch of metric sets from one reporter, specified
-in CDDL <span>[<a href="#CDDL" class="cite xref">CDDL</a>]</span> with a JSON <span>[<a href="#JSON" class="cite xref">JSON</a>]</span> encoding and a CBOR <span>[<a href="#CBOR" class="cite xref">CBOR</a>]</span> encoding.<a href="#section-1.1-2.4.1" class="pilcrow">¶</a></p>
+            <p id="section-1.1-2.4.1">A container that carries a batch of metric sets from one reporter. Its data
+model is specified in CDDL <span>[<a href="#CDDL" class="cite xref">CDDL</a>]</span> independently of any encoding, and this
+document defines a JSON <span>[<a href="#JSON" class="cite xref">JSON</a>]</span> encoding and a CBOR <span>[<a href="#CBOR" class="cite xref">CBOR</a>]</span> encoding of it.<a href="#section-1.1-2.4.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
 <dt id="section-1.1-2.5">Delivery (<a href="#delivery" class="auto internal xref">Section 6</a>):</dt>
@@ -2510,20 +2513,71 @@ the previous report. Because counters are cumulative, a lost report reduces the
 time resolution of the data but does not lose counts.<a href="#section-5-3" class="pilcrow">¶</a></p>
 <div id="encodings">
 <section id="section-5.1">
-        <h3 id="name-encodings">
-<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-encodings" class="section-name selfRef">Encodings</a>
+        <h3 id="name-data-model-and-encodings">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-data-model-and-encodings" class="section-name selfRef">Data Model and Encodings</a>
         </h3>
-<p id="section-5.1-1">A Metric Report is encoded in JSON <span>[<a href="#JSON" class="cite xref">JSON</a>]</span> or in CBOR <span>[<a href="#CBOR" class="cite xref">CBOR</a>]</span>. Both encodings
-use the same data model and the same field names, as specified by the CDDL
-<span>[<a href="#CDDL" class="cite xref">CDDL</a>]</span> in <a href="#cddl" class="auto internal xref">Appendix A</a>. The media types <code>application/moq-analytics+json</code> and
-<code>application/moq-analytics+cbor</code> identify the two encodings.<a href="#section-5.1-1" class="pilcrow">¶</a></p>
-<p id="section-5.1-2">JSON is easy to inspect and matches the encoding of the MSF catalog. CBOR is
+<p id="section-5.1-1">The metric sets in <a href="#sets" class="auto internal xref">Section 4</a> and the Metric Report defined in this section form a
+data model that is independent of encoding. The CDDL <span>[<a href="#CDDL" class="cite xref">CDDL</a>]</span> in <a href="#cddl" class="auto internal xref">Appendix A</a>
+specifies that data model. Metric set types, member names, value types, and
+units belong to the data model and are the same in every encoding.<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<p id="section-5.1-2">This document defines two encodings of the data model:<a href="#section-5.1-2" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-5.1-3">
+          <dt id="section-5.1-3.1">JSON:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.1-3.2">
+            <p id="section-5.1-3.2.1">The JSON <span>[<a href="#JSON" class="cite xref">JSON</a>]</span> encoding, identified by the media type
+<code>application/moq-analytics+json</code>.<a href="#section-5.1-3.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.1-3.3">CBOR:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.1-3.4">
+            <p id="section-5.1-3.4.1">The CBOR <span>[<a href="#CBOR" class="cite xref">CBOR</a>]</span> encoding, identified by the media type
+<code>application/moq-analytics+cbor</code>.<a href="#section-5.1-3.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-5.1-4">Both encodings use the field and member names of the data model as map keys.
+JSON is easy to inspect and matches the encoding of the MSF catalog. CBOR is
 more compact and is <span class="bcp14">RECOMMENDED</span> for analytics tracks that report frequently or
-that share capacity with media.<a href="#section-5.1-2" class="pilcrow">¶</a></p>
-<p id="section-5.1-3">CBOR was chosen over schema-dependent binary formats such as Protocol Buffers
-<span>[<a href="#PROTOBUF" class="cite xref">PROTOBUF</a>]</span> because CBOR is self-describing, so a receiver can skip members it
-does not understand without a schema, and because a single CDDL specification
-describes both the JSON and CBOR encodings.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
+that share capacity with media. Reporters and collectors <span class="bcp14">MUST</span> support both
+encodings, so that any reporter can deliver reports to any collector.<a href="#section-5.1-4" class="pilcrow">¶</a></p>
+<p id="section-5.1-5">The data model is limited to values that both encodings can represent: maps
+with text keys, arrays, text strings, numbers, booleans, and null. A CBOR
+encoder <span class="bcp14">MUST NOT</span> use byte strings, tags, simple values other than false, true,
+and null, or non-finite floating-point values.<a href="#section-5.1-5" class="pilcrow">¶</a></p>
+<p id="section-5.1-6">Other specifications <span class="bcp14">MAY</span> define additional encodings, such as one using Protocol
+Buffers <span>[<a href="#PROTOBUF" class="cite xref">PROTOBUF</a>]</span>. An additional encoding:<a href="#section-5.1-6" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-5.1-7.1">
+            <p id="section-5.1-7.1.1"><span class="bcp14">MUST</span> be identified by its own media type;<a href="#section-5.1-7.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-5.1-7.2">
+            <p id="section-5.1-7.2.1"><span class="bcp14">MUST</span> be able to represent every Metric Report that conforms to the CDDL in
+<a href="#cddl" class="auto internal xref">Appendix A</a>, such that converting a report to the encoding and then to JSON or
+CBOR yields the same metric sets, members, and values;<a href="#section-5.1-7.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-5.1-7.3">
+            <p id="section-5.1-7.3.1"><span class="bcp14">MUST</span> carry extension members and extension metric set types (<a href="#extensions" class="auto internal xref">Section 4.12</a>)
+in a form that a receiver can skip, and that a collector can convert to JSON
+or CBOR, without knowing the definition of the extension; and<a href="#section-5.1-7.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-5.1-7.4">
+            <p id="section-5.1-7.4.1"><span class="bcp14">MAY</span> identify metric set types and members by the numeric identifiers of the
+registry described in <a href="#iana" class="auto internal xref">Section 11</a> rather than by name.<a href="#section-5.1-7.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-5.1-8">A reporter uses an additional encoding only when a catalog (<a href="#catalog" class="auto internal xref">Section 6.2</a>) or its
+configuration (<a href="#configured" class="auto internal xref">Section 6.3</a>) selects that encoding. Because every encoding
+represents the same data model, a relay or collector can convert reports from
+one encoding to another without loss. This separation of data model and
+encoding follows qlog <span>[<a href="#QLOG" class="cite xref">QLOG</a>]</span>, whose CDDL schemas are independent of
+serialization format, and YANG-CBOR <span>[<a href="#RFC9254" class="cite xref">RFC9254</a>]</span>, which can identify the nodes
+of a YANG data model by numeric identifiers instead of names.<a href="#section-5.1-8" class="pilcrow">¶</a></p>
+<p id="section-5.1-9">The compact encoding defined in this document is CBOR, rather than a
+schema-dependent format such as Protocol Buffers, because CBOR is
+self-describing. A receiver can decode, log, forward, and convert members that
+it does not understand, including extension members, without a schema. A
+schema-dependent format can skip unknown fields, but cannot interpret them
+without the schema that defines them.<a href="#section-5.1-9" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="example">
@@ -2644,7 +2698,7 @@ analytics track in its <code>publishTracks</code> array. The track object:<a hre
             <p id="section-6.2-2.2.1"><span class="bcp14">MUST</span> have a <code>role</code> value of <code>metrics</code>;<a href="#section-6.2-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-6.2-2.3">
-            <p id="section-6.2-2.3.1"><span class="bcp14">MUST</span> have a <code>mimeType</code> value identifying the encoding; and<a href="#section-6.2-2.3.1" class="pilcrow">¶</a></p>
+            <p id="section-6.2-2.3.1"><span class="bcp14">MUST</span> have a <code>mimeType</code> value identifying the encoding (<a href="#encodings" class="auto internal xref">Section 5.1</a>); and<a href="#section-6.2-2.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-6.2-2.4">
             <p id="section-6.2-2.4.1"><span class="bcp14">MAY</span> include the <code>connectionUri</code> and <code>token</code> fields defined by <span>[<a href="#MSF" class="cite xref">MSF</a>]</span>, to
@@ -2672,8 +2726,9 @@ other sets.<a href="#section-6.2-4.2.1" class="pilcrow">¶</a></p>
 <p id="section-6.2-5">The <code>namespace</code> and <code>name</code> fields give the analytics track. The <code>namespace</code>
           <span class="bcp14">MAY</span> contain the placeholder <code>%reporterId%</code>, which the subscriber replaces with
 its reporter <code>id</code>.<a href="#section-6.2-5" class="pilcrow">¶</a></p>
+<p id="section-6.2-6">A subscriber that does not support the encoding identified by <code>mimeType</code> <span class="bcp14">MUST NOT</span> publish that analytics track.<a href="#section-6.2-6" class="pilcrow">¶</a></p>
 <span id="name-catalog-requesting-analytic"></span><figure id="figure-2">
-          <div class="lang-json sourcecode" id="section-6.2-6.1">
+          <div class="lang-json sourcecode" id="section-6.2-7.1">
 <pre>
 "publishTracks": [
   {
@@ -2693,10 +2748,10 @@ its reporter <code>id</code>.<a href="#section-6.2-5" class="pilcrow">¶</a></p>
 <figcaption><a href="#figure-2" class="selfRef">Figure 2</a>:
 <a href="#name-catalog-requesting-analytic" class="selfRef">Catalog Requesting Analytics</a>
           </figcaption></figure>
-<p id="section-6.2-7">Because CMSF uses the MSF catalog, the same declaration applies to CMSF
+<p id="section-6.2-8">Because CMSF uses the MSF catalog, the same declaration applies to CMSF
 catalogs. A catalog <span class="bcp14">MAY</span> declare several analytics tracks, for example one with
 a short interval for QoE metrics and one with a long interval for transport
-metrics.<a href="#section-6.2-7" class="pilcrow">¶</a></p>
+metrics.<a href="#section-6.2-8" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="configured">
@@ -2993,7 +3048,7 @@ individual detail is not needed, and <span class="bcp14">SHOULD</span> document 
 subscriber metrics.<a href="#section-10-2" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="iana-considerations">
+<div id="iana">
 <section id="section-11">
       <h2 id="name-iana-considerations">
 <a href="#section-11" class="section-number selfRef">11. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
@@ -3009,7 +3064,10 @@ subscriber metrics.<a href="#section-10-2" class="pilcrow">¶</a></p>
 registry for packaging values; and<a href="#section-11-2.2.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-11-2.3">
-          <p id="section-11-2.3.1">a registry of metric set types and members.<a href="#section-11-2.3.1" class="pilcrow">¶</a></p>
+          <p id="section-11-2.3.1">a registry of metric set types and members, recording for each its name, a
+numeric identifier, its value type and unit, and its defining specification.
+Encodings that identify members by number (<a href="#encodings" class="auto internal xref">Section 5.1</a>) use these
+identifiers.<a href="#section-11-2.3.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>
@@ -3115,9 +3173,17 @@ document. All AI-generated content was reviewed and approved by the author.<a hr
         <dd>
 <span class="refAuthor">Google</span>, <span class="refTitle">"Protocol Buffers"</span>, <span>&lt;<a href="https://protobuf.dev/">https://protobuf.dev/</a>&gt;</span>. </dd>
 <dd class="break"></dd>
+<dt id="QLOG">[QLOG]</dt>
+        <dd>
+<span class="refAuthor">Marx, R.</span>, <span class="refAuthor">Niccolini, L.</span>, <span class="refAuthor">Seemann, M.</span>, and <span class="refAuthor">L. Pardue</span>, <span class="refTitle">"qlog: Structured Logging for Network Protocols"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-quic-qlog-main-schema-14</span>, <time datetime="2026-07-06" class="refDate">6 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-quic-qlog-main-schema-14">https://datatracker.ietf.org/doc/html/draft-ietf-quic-qlog-main-schema-14</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="RFC9000">[RFC9000]</dt>
         <dd>
 <span class="refAuthor">Iyengar, J., Ed.</span> and <span class="refAuthor">M. Thomson, Ed.</span>, <span class="refTitle">"QUIC: A UDP-Based Multiplexed and Secure Transport"</span>, <span class="seriesInfo">RFC 9000</span>, <span class="seriesInfo">DOI 10.17487/RFC9000</span>, <time datetime="2021-05" class="refDate">May 2021</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9000">https://www.rfc-editor.org/rfc/rfc9000</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9254">[RFC9254]</dt>
+        <dd>
+<span class="refAuthor">Veillette, M., Ed.</span>, <span class="refAuthor">Petrov, I., Ed.</span>, <span class="refAuthor">Pelov, A.</span>, <span class="refAuthor">Bormann, C.</span>, and <span class="refAuthor">M. Richardson</span>, <span class="refTitle">"Encoding of Data Modeled with YANG in the Concise Binary Object Representation (CBOR)"</span>, <span class="seriesInfo">RFC 9254</span>, <span class="seriesInfo">DOI 10.17487/RFC9254</span>, <time datetime="2022-07" class="refDate">July 2022</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9254">https://www.rfc-editor.org/rfc/rfc9254</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="SECURE-OBJECTS">[SECURE-OBJECTS]</dt>
         <dd>
@@ -3137,8 +3203,9 @@ document. All AI-generated content was reviewed and approved by the author.<a hr
       <h2 id="name-cddl">
 <a href="#appendix-A" class="section-number selfRef">Appendix A. </a><a href="#name-cddl" class="section-name selfRef">CDDL</a>
       </h2>
-<p id="appendix-A-1">The following CDDL <span>[<a href="#CDDL" class="cite xref">CDDL</a>]</span> specifies the Metric Report for both the JSON and
-CBOR encodings.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<p id="appendix-A-1">The following CDDL <span>[<a href="#CDDL" class="cite xref">CDDL</a>]</span> specifies the Metric Report data model. It applies
+directly to the JSON and CBOR encodings; other encodings represent it as
+described in <a href="#encodings" class="auto internal xref">Section 5.1</a>.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
 <span id="name-metric-report-cddl"></span><figure id="figure-3">
         <div class="breakable lang-cddl sourcecode" id="appendix-A-2.1">
 <pre>
@@ -3394,33 +3461,39 @@ extension-set = {
 expected to support?<a href="#appendix-B-3.1.1" class="pilcrow">¶</a></p>
 </li>
         <li id="appendix-B-3.2">
-          <p id="appendix-B-3.2.1">Should the CBOR encoding assign integer keys to fields and members to reduce
-size further?<a href="#appendix-B-3.2.1" class="pilcrow">¶</a></p>
+          <p id="appendix-B-3.2.1">Should the CBOR encoding use the numeric identifiers of the registry as map
+keys, which reduces size but makes its keys differ from the JSON names, or
+should integer keys be left to an additional encoding?<a href="#appendix-B-3.2.1" class="pilcrow">¶</a></p>
 </li>
         <li id="appendix-B-3.3">
-          <p id="appendix-B-3.3.1">Should histograms and counters support delta temporality in addition to
-cumulative temporality?<a href="#appendix-B-3.3.1" class="pilcrow">¶</a></p>
+          <p id="appendix-B-3.3.1">Is support for both JSON and CBOR a reasonable requirement for constrained
+reporters, or should one encoding be mandatory for reporters and both
+mandatory only for collectors?<a href="#appendix-B-3.3.1" class="pilcrow">¶</a></p>
 </li>
         <li id="appendix-B-3.4">
-          <p id="appendix-B-3.4.1">Should analytics tracks use a new MSF packaging value, as proposed here, or a
-profile of the <code>moqmetrics</code> packaging of <span>[<a href="#MOQMETRICS" class="cite xref">MOQMETRICS</a>]</span>? MSF currently lists
-packaging values without a registry.<a href="#appendix-B-3.4.1" class="pilcrow">¶</a></p>
+          <p id="appendix-B-3.4.1">Should histograms and counters support delta temporality in addition to
+cumulative temporality?<a href="#appendix-B-3.4.1" class="pilcrow">¶</a></p>
 </li>
         <li id="appendix-B-3.5">
-          <p id="appendix-B-3.5.1">Should analytics track names follow the granularity levels used by MSF
-metrics tracks?<a href="#appendix-B-3.5.1" class="pilcrow">¶</a></p>
+          <p id="appendix-B-3.5.1">Should analytics tracks use a new MSF packaging value, as proposed here, or a
+profile of the <code>moqmetrics</code> packaging of <span>[<a href="#MOQMETRICS" class="cite xref">MOQMETRICS</a>]</span>? MSF currently lists
+packaging values without a registry.<a href="#appendix-B-3.5.1" class="pilcrow">¶</a></p>
 </li>
         <li id="appendix-B-3.6">
-          <p id="appendix-B-3.6.1">How should track namespaces, which are tuples of byte strings in <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span>, be
-represented when they are not valid text?<a href="#appendix-B-3.6.1" class="pilcrow">¶</a></p>
+          <p id="appendix-B-3.6.1">Should analytics track names follow the granularity levels used by MSF
+metrics tracks?<a href="#appendix-B-3.6.1" class="pilcrow">¶</a></p>
 </li>
         <li id="appendix-B-3.7">
-          <p id="appendix-B-3.7.1">Which members of the feedback reports in <span>[<a href="#MOQFEEDBACK" class="cite xref">MOQFEEDBACK</a>]</span> should be aligned
-with members defined here?<a href="#appendix-B-3.7.1" class="pilcrow">¶</a></p>
+          <p id="appendix-B-3.7.1">How should track namespaces, which are tuples of byte strings in <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span>, be
+represented when they are not valid text?<a href="#appendix-B-3.7.1" class="pilcrow">¶</a></p>
 </li>
         <li id="appendix-B-3.8">
-          <p id="appendix-B-3.8.1">What clock synchronization should be assumed for <code>latency</code> and
-<code>liveLatency</code>?<a href="#appendix-B-3.8.1" class="pilcrow">¶</a></p>
+          <p id="appendix-B-3.8.1">Which members of the feedback reports in <span>[<a href="#MOQFEEDBACK" class="cite xref">MOQFEEDBACK</a>]</span> should be aligned
+with members defined here?<a href="#appendix-B-3.8.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-B-3.9">
+          <p id="appendix-B-3.9.1">What clock synchronization should be assumed for <code>latency</code> and
+<code>liveLatency</code>?<a href="#appendix-B-3.9.1" class="pilcrow">¶</a></p>
 </li>
       </ol>
 </section>
