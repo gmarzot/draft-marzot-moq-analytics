@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-10-06T05:50:08.367517+00:00",
+  "timestamp": "2026-10-08T05:31:07.298602+00:00",
   "repo": "gmarzot/draft-marzot-moq-analytics",
   "labels": [
     {
@@ -55,5 +55,34 @@
     }
   ],
   "issues": [],
-  "pulls": []
+  "pulls": [
+    {
+      "number": 1,
+      "id": "PR_kwDOUtX1cM8AAAABG-Hkow",
+      "title": "Separate the data model from its encodings",
+      "url": "https://github.com/gmarzot/draft-marzot-moq-analytics/pull/1",
+      "state": "MERGED",
+      "author": "gmarzot",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "Separates the Metric Report data model from its encodings, so encodings can vary while metric set types, member names, value types and units stay fixed.\n\n## Changes\n\n- **\u00a75.1 \"Data Model and Encodings\"** (was \"Encodings\"):\n  - The CDDL in Appendix A is the encoding-independent data model.\n  - JSON and CBOR are the two defined encodings, and **both are mandatory to implement** for reporters and collectors.\n  - Values are limited to what both encodings can represent. CBOR must not use byte strings, tags, other simple values or non-finite floats, so converting between JSON and CBOR is lossless.\n  - Other specs MAY define additional encodings (e.g. protobuf). Each must:\n    - have its own media type;\n    - round-trip to JSON/CBOR without loss;\n    - carry extensions in a form that can be skipped and converted without knowing their definition;\n    - MAY key by registry numeric identifiers.\n\n    An additional encoding is used only when a catalog or configuration selects it.\n  - Cites qlog (CDDL independent of serialization) and YANG-CBOR, RFC 9254 (numeric identifiers for named nodes) as precedent.\n  - Restates the CBOR-over-protobuf rationale accurately: protobuf can *skip* unknown fields but can't *interpret* them without the schema. CBOR can decode, log, forward and convert them.\n- **Catalog:** a subscriber that doesn't support the `mimeType` encoding MUST NOT publish that analytics track.\n- **IANA:** the planned registry records a name, numeric identifier, value type, unit and defining spec for each set type and member.\n- **Open issues:**\n  - #2 is reframed: should CBOR use the registry's numeric IDs as keys, or should integer keys be left to an additional encoding?\n  - New #3: is both-encodings-mandatory acceptable for constrained reporters?\n- Abstract, overview and the Appendix A intro are updated to match.\n- New informative references: `I-D.ietf-quic-qlog-main-schema`, RFC 9254.\n\n## Decisions to review\n\n1. **JSON and CBOR both mandatory for reporters and collectors.** This is the simplest way to guarantee interop, because a catalog can name either one. The alternative is making only collectors support both, which is now open issue #3.\n2. **Restricting values to the JSON-compatible subset.** This is needed for lossless conversion, and it affects extension members whose type is `any`. Open issue #7 (namespaces as byte strings) still applies.\n3. **No numeric identifiers are assigned yet.** That waits until the registry is created.\n\nThe CDDL itself is unchanged.\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)\n",
+      "createdAt": "2026-10-06T18:05:09Z",
+      "updatedAt": "2026-10-07T13:46:42Z",
+      "baseRepository": "gmarzot/draft-marzot-moq-analytics",
+      "baseRefName": "main",
+      "baseRefOid": "04c61e52a168384600b5a193f4b1e0378b5ca5a4",
+      "headRepository": "gmarzot/draft-marzot-moq-analytics",
+      "headRefName": "encoding-independent-model",
+      "headRefOid": "adc627e1b9a7e1a1e8084b72f5502692e043f2a1",
+      "closedAt": "2026-10-07T13:46:41Z",
+      "mergedAt": "2026-10-07T13:46:41Z",
+      "mergedBy": "gmarzot",
+      "mergeCommit": {
+        "oid": "02a2b0301338f9b9d7830f6f7ce9bb140caa30c2"
+      },
+      "comments": [],
+      "reviews": []
+    }
+  ]
 }
