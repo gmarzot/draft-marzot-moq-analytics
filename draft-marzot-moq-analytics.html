@@ -18,7 +18,11 @@ Metric Report that carries metric sets, specified in CDDL as a data model that
 is independent of encoding, with JSON and CBOR encodings. It also defines how
 Metric Reports are delivered as objects on MoQT analytics tracks, either to an
 endpoint directed by an MSF or CMSF catalog or to a collector configured by the
-reporter. 
+reporter. It describes reverse-path delivery, in which a relay operated by or on
+behalf of the publisher acts as a first-hop collection point that can aggregate
+reports and correlate them with its own measurements, and it defines a
+correlation identifier that allows reports from subscribers, relays, and
+publishers to be combined at any collection point. 
     " name="description">
 <meta content="xml2rfc 3.34.1" name="generator">
 <meta content="media over quic" name="keyword">
@@ -1060,7 +1064,7 @@ svg {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Marzot</td>
-<td class="center">Expires 10 April 2027</td>
+<td class="center">Expires 12 April 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1073,12 +1077,12 @@ svg {
 <dd class="internet-draft">draft-marzot-moq-analytics-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-10-07" class="published">7 October 2026</time>
+<time datetime="2026-10-09" class="published">9 October 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-04-10">10 April 2027</time></dd>
+<dd class="expires"><time datetime="2027-04-12">12 April 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1102,7 +1106,11 @@ Metric Report that carries metric sets, specified in CDDL as a data model that
 is independent of encoding, with JSON and CBOR encodings. It also defines how
 Metric Reports are delivered as objects on MoQT analytics tracks, either to an
 endpoint directed by an MSF or CMSF catalog or to a collector configured by the
-reporter.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
+reporter. It describes reverse-path delivery, in which a relay operated by or on
+behalf of the publisher acts as a first-hop collection point that can aggregate
+reports and correlate them with its own measurements, and it defines a
+correlation identifier that allows reports from subscribers, relays, and
+publishers to be combined at any collection point.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
 </section>
 <section class="note rfcEditorRemove" id="section-note.1">
       <h2 id="name-about-this-document">
@@ -1139,7 +1147,7 @@ reporter.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 10 April 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 12 April 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1261,64 +1269,84 @@ reporter.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
                 <p id="section-toc.1-1.6.2.1.1"><a href="#section-6.1" class="auto internal xref">6.1</a>.  <a href="#name-analytics-tracks" class="internal xref">Analytics Tracks</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.2">
-                <p id="section-toc.1-1.6.2.2.1"><a href="#section-6.2" class="auto internal xref">6.2</a>.  <a href="#name-catalog-directed-delivery" class="internal xref">Catalog-Directed Delivery</a></p>
+                <p id="section-toc.1-1.6.2.2.1"><a href="#section-6.2" class="auto internal xref">6.2</a>.  <a href="#name-collection-points" class="internal xref">Collection Points</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.3">
-                <p id="section-toc.1-1.6.2.3.1"><a href="#section-6.3" class="auto internal xref">6.3</a>.  <a href="#name-reporter-configured-deliver" class="internal xref">Reporter-Configured Delivery</a></p>
+                <p id="section-toc.1-1.6.2.3.1"><a href="#section-6.3" class="auto internal xref">6.3</a>.  <a href="#name-reverse-path-delivery" class="internal xref">Reverse-Path Delivery</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.4">
-                <p id="section-toc.1-1.6.2.4.1"><a href="#section-6.4" class="auto internal xref">6.4</a>.  <a href="#name-collector-subscription" class="internal xref">Collector Subscription</a></p>
+                <p id="section-toc.1-1.6.2.4.1"><a href="#section-6.4" class="auto internal xref">6.4</a>.  <a href="#name-relay-aggregation" class="internal xref">Relay Aggregation</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.5">
+                <p id="section-toc.1-1.6.2.5.1"><a href="#section-6.5" class="auto internal xref">6.5</a>.  <a href="#name-redirecting-analytics" class="internal xref">Redirecting Analytics</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.6">
+                <p id="section-toc.1-1.6.2.6.1"><a href="#section-6.6" class="auto internal xref">6.6</a>.  <a href="#name-catalog-directed-delivery" class="internal xref">Catalog-Directed Delivery</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.7">
+                <p id="section-toc.1-1.6.2.7.1"><a href="#section-6.7" class="auto internal xref">6.7</a>.  <a href="#name-reporter-configured-deliver" class="internal xref">Reporter-Configured Delivery</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.8">
+                <p id="section-toc.1-1.6.2.8.1"><a href="#section-6.8" class="auto internal xref">6.8</a>.  <a href="#name-collector-subscription" class="internal xref">Collector Subscription</a></p>
 </li>
             </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
-            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-export-to-monitoring-system" class="internal xref">Export to Monitoring Systems</a></p>
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-combining-reports" class="internal xref">Combining Reports</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.1">
+                <p id="section-toc.1-1.7.2.1.1"><a href="#section-7.1" class="auto internal xref">7.1</a>.  <a href="#name-correlation_id-setup-option" class="internal xref">CORRELATION_ID Setup Option</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
-            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-mappings-from-existing-voca" class="internal xref">Mappings from Existing Vocabularies</a></p>
-<ul class="compact toc ulBare ulEmpty">
-<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.1">
-                <p id="section-toc.1-1.8.2.1.1"><a href="#section-8.1" class="auto internal xref">8.1</a>.  <a href="#name-webrtc-statistics" class="internal xref">WebRTC Statistics</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.2">
-                <p id="section-toc.1-1.8.2.2.1"><a href="#section-8.2" class="auto internal xref">8.2</a>.  <a href="#name-cmcd-and-cmsd" class="internal xref">CMCD and CMSD</a></p>
-</li>
-            </ul>
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-export-to-monitoring-system" class="internal xref">Export to Monitoring Systems</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
-            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
-</li>
-          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
-            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-privacy-considerations" class="internal xref">Privacy Considerations</a></p>
-</li>
-          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
-            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref">11</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
-</li>
-          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
-            <p id="section-toc.1-1.12.1"><a href="#section-12" class="auto internal xref"></a><a href="#name-use-of-generative-ai" class="internal xref">Use of Generative AI</a></p>
-</li>
-          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
-            <p id="section-toc.1-1.13.1"><a href="#section-13" class="auto internal xref"></a><a href="#name-references" class="internal xref">References</a></p>
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-mappings-from-existing-voca" class="internal xref">Mappings from Existing Vocabularies</a></p>
 <ul class="compact toc ulBare ulEmpty">
-<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.1">
-                <p id="section-toc.1-1.13.2.1.1"><a href="#section-13.1" class="auto internal xref"></a><a href="#name-normative-references" class="internal xref">Normative References</a></p>
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.1">
+                <p id="section-toc.1-1.9.2.1.1"><a href="#section-9.1" class="auto internal xref">9.1</a>.  <a href="#name-webrtc-statistics" class="internal xref">WebRTC Statistics</a></p>
 </li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.2">
-                <p id="section-toc.1-1.13.2.2.1"><a href="#section-13.2" class="auto internal xref"></a><a href="#name-informative-references" class="internal xref">Informative References</a></p>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.2">
+                <p id="section-toc.1-1.9.2.2.1"><a href="#section-9.2" class="auto internal xref">9.2</a>.  <a href="#name-cmcd-and-cmsd" class="internal xref">CMCD and CMSD</a></p>
 </li>
             </ul>
 </li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref">11</a>. <a href="#name-privacy-considerations" class="internal xref">Privacy Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#section-12" class="auto internal xref">12</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
+            <p id="section-toc.1-1.13.1"><a href="#section-13" class="auto internal xref"></a><a href="#name-use-of-generative-ai" class="internal xref">Use of Generative AI</a></p>
+</li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
-            <p id="section-toc.1-1.14.1"><a href="#appendix-A" class="auto internal xref">Appendix A</a>.  <a href="#name-cddl" class="internal xref">CDDL</a></p>
+            <p id="section-toc.1-1.14.1"><a href="#section-14" class="auto internal xref"></a><a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.1">
+                <p id="section-toc.1-1.14.2.1.1"><a href="#section-14.1" class="auto internal xref"></a><a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.2">
+                <p id="section-toc.1-1.14.2.2.1"><a href="#section-14.2" class="auto internal xref"></a><a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
-            <p id="section-toc.1-1.15.1"><a href="#appendix-B" class="auto internal xref">Appendix B</a>.  <a href="#name-open-issues" class="internal xref">Open Issues</a></p>
+            <p id="section-toc.1-1.15.1"><a href="#appendix-A" class="auto internal xref">Appendix A</a>.  <a href="#name-cddl" class="internal xref">CDDL</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.16">
-            <p id="section-toc.1-1.16.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+            <p id="section-toc.1-1.16.1"><a href="#appendix-B" class="auto internal xref">Appendix B</a>.  <a href="#name-open-issues" class="internal xref">Open Issues</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.17">
-            <p id="section-toc.1-1.17.1"><a href="#appendix-D" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+            <p id="section-toc.1-1.17.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.18">
+            <p id="section-toc.1-1.18.1"><a href="#appendix-D" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
 </li>
         </ul>
 </nav>
@@ -1341,10 +1369,11 @@ may have different names, units, and aggregation rules. A relay operator
 therefore cannot reliably compare a publisher's observations with a subscriber's
 observations or correlate them with relay and transport events.<a href="#section-1-2" class="pilcrow">¶</a></p>
 <p id="section-1-3">MSF <span>[<a href="#MSF" class="cite xref">MSF</a>]</span> allows a catalog to declare publish tracks to which a subscriber
-sends metrics, and <span>[<a href="#MOQMETRICS" class="cite xref">MOQMETRICS</a>]</span> defines a generic metrics payload that carries
-one named gauge or counter per object. Neither defines what MoQT-specific
-metrics mean. This document fills that gap and defines a delivery format suited
-to it.<a href="#section-1-3" class="pilcrow">¶</a></p>
+sends metrics. MSF currently pairs those tracks with the generic payload of
+<span>[<a href="#MOQMETRICS" class="cite xref">MOQMETRICS</a>]</span>, which carries one named gauge or counter per object and does not
+define what any metric means. This document does not use or depend on that
+payload. It defines MoQT-specific metrics, a report format suited to them, and
+how reports are delivered and combined.<a href="#section-1-3" class="pilcrow">¶</a></p>
 <div id="overview">
 <section id="section-1.1">
         <h3 id="name-overview">
@@ -1370,14 +1399,21 @@ document defines a JSON <span>[<a href="#JSON" class="cite xref">JSON</a>]</span
 <dt id="section-1.1-2.5">Delivery (<a href="#delivery" class="auto internal xref">Section 6</a>):</dt>
           <dd style="margin-left: 1.5em" id="section-1.1-2.6">
             <p id="section-1.1-2.6.1">A mapping of Metric Reports onto the objects of a MoQT analytics track,
-integration with the MSF and CMSF catalog, and delivery to a collector
-configured by the reporter.<a href="#section-1.1-2.6.1" class="pilcrow">¶</a></p>
+integration with the MSF and CMSF catalog, reverse-path delivery to and
+aggregation at relays, delivery to other collection points, and redirection
+between them.<a href="#section-1.1-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-1.1-2.7">Correlation (<a href="#correlation" class="auto internal xref">Section 7</a>):</dt>
+          <dd style="margin-left: 1.5em" id="section-1.1-2.8">
+            <p id="section-1.1-2.8.1">Means of combining metric sets from subscribers, relays, and publishers that
+describe the same MoQT session.<a href="#section-1.1-2.8.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
 </dl>
 <p id="section-1.1-3">The metric sets are useful independently of the delivery mechanism. An
 implementation can also export them to OpenMetrics <span>[<a href="#OPENMETRICS" class="cite xref">OPENMETRICS</a>]</span> or
-OpenTelemetry <span>[<a href="#OTEL" class="cite xref">OTEL</a>]</span> using the naming rule in <a href="#export" class="auto internal xref">Section 7</a>.<a href="#section-1.1-3" class="pilcrow">¶</a></p>
+OpenTelemetry <span>[<a href="#OTEL" class="cite xref">OTEL</a>]</span> using the naming rule in <a href="#export" class="auto internal xref">Section 8</a>.<a href="#section-1.1-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="non-goals">
@@ -1434,6 +1470,25 @@ time.<a href="#section-2-3.6.1" class="pilcrow">¶</a></p>
 <dt id="section-2-3.11">Analytics Track:</dt>
         <dd style="margin-left: 1.5em" id="section-2-3.12">
           <p id="section-2-3.12.1">A MoQT track whose objects carry Metric Reports.<a href="#section-2-3.12.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.13">Collection Point:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.14">
+          <p id="section-2-3.14.1">A MoQT endpoint that accepts analytics tracks, such as an edge relay, an
+upstream relay, an origin, or a dedicated collector.<a href="#section-2-3.14.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.15">Reverse-Path Delivery:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.16">
+          <p id="section-2-3.16.1">Delivery of a reporter's analytics track on the same MoQT session that the
+reporter uses for media, so that the first collection point is the relay at
+the other end of that session.<a href="#section-2-3.16.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.17">Correlation ID:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.18">
+          <p id="section-2-3.18.1">A value shared by both endpoints of a MoQT session that allows their metric
+sets for that session to be combined.<a href="#section-2-3.18.1" class="pilcrow">¶</a></p>
 </dd>
       <dd class="break"></dd>
 </dl>
@@ -1583,6 +1638,13 @@ reporter for the lifetime of the set.<a href="#section-4-2.4.1" class="pilcrow">
           <p id="section-4-2.6.1">Required. The time at which the members of the set were sampled, in
 milliseconds since the Unix epoch.<a href="#section-4-2.6.1" class="pilcrow">¶</a></p>
 </dd>
+        <dd class="break"></dd>
+<dt id="section-4-2.7">
+<code>sources</code>:</dt>
+        <dd style="margin-left: 1.5em" id="section-4-2.8">
+          <p id="section-4-2.8.1">Attribute. Present only in an aggregated metric set (<a href="#aggregation" class="auto internal xref">Section 6.4</a>), where
+it gives the number of metric sets that were combined.<a href="#section-4-2.8.1" class="pilcrow">¶</a></p>
+</dd>
       <dd class="break"></dd>
 </dl>
 <p id="section-4-3">The following metric set types are defined:<a href="#section-4-3" class="pilcrow">¶</a></p>
@@ -1712,6 +1774,20 @@ MoQT session setup.<a href="#section-4.1-1.10.1" class="pilcrow">¶</a></p>
 <code>goawaysReceived</code>:</dt>
           <dd style="margin-left: 1.5em" id="section-4.1-1.12">
             <p id="section-4.1-1.12.1">Counter. GOAWAY messages received.<a href="#section-4.1-1.12.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-4.1-1.13">
+<code>correlationId</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-4.1-1.14">
+            <p id="section-4.1-1.14.1">Attribute. The correlation ID of the session (<a href="#correlation-id" class="auto internal xref">Section 7.1</a>), as
+lowercase hexadecimal.<a href="#section-4.1-1.14.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-4.1-1.15">
+<code>peerReporterId</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-4.1-1.16">
+            <p id="section-4.1-1.16.1">Attribute. The reporter <code>id</code> of the peer, when known, for example from an
+analytics track that the peer publishes on this session.<a href="#section-4.1-1.16.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
 </dl>
@@ -2562,11 +2638,11 @@ or CBOR, without knowing the definition of the extension; and<a href="#section-5
 </li>
           <li class="normal" id="section-5.1-7.4">
             <p id="section-5.1-7.4.1"><span class="bcp14">MAY</span> identify metric set types and members by the numeric identifiers of the
-registry described in <a href="#iana" class="auto internal xref">Section 11</a> rather than by name.<a href="#section-5.1-7.4.1" class="pilcrow">¶</a></p>
+registry described in <a href="#iana" class="auto internal xref">Section 12</a> rather than by name.<a href="#section-5.1-7.4.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-5.1-8">A reporter uses an additional encoding only when a catalog (<a href="#catalog" class="auto internal xref">Section 6.2</a>) or its
-configuration (<a href="#configured" class="auto internal xref">Section 6.3</a>) selects that encoding. Because every encoding
+<p id="section-5.1-8">A reporter uses an additional encoding only when a catalog (<a href="#catalog" class="auto internal xref">Section 6.6</a>) or its
+configuration (<a href="#configured" class="auto internal xref">Section 6.7</a>) selects that encoding. Because every encoding
 represents the same data model, a relay or collector can convert reports from
 one encoding to another without loss. This separation of data model and
 encoding follows qlog <span>[<a href="#QLOG" class="cite xref">QLOG</a>]</span>, whose CDDL schemas are independent of
@@ -2670,8 +2746,8 @@ group, for example to limit object size. Each such object <span class="bcp14">MU
 Metric Report that can be decoded independently.<a href="#section-6.1-3.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-6.1-3.3">
-            <p id="section-6.1-3.3.1">The encoding is identified by the catalog (<a href="#catalog" class="auto internal xref">Section 6.2</a>) or by configuration
-(<a href="#configured" class="auto internal xref">Section 6.3</a>). All objects on a track use the same encoding.<a href="#section-6.1-3.3.1" class="pilcrow">¶</a></p>
+            <p id="section-6.1-3.3.1">The encoding is identified by the catalog (<a href="#catalog" class="auto internal xref">Section 6.6</a>) or by configuration
+(<a href="#configured" class="auto internal xref">Section 6.7</a>). All objects on a track use the same encoding.<a href="#section-6.1-3.3.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="section-6.1-4">Analytics are usually less urgent than media. A reporter <span class="bcp14">SHOULD</span> assign analytics
@@ -2683,52 +2759,184 @@ reports that are no longer timely, and <span class="bcp14">MAY</span> send small
 signaling defined in <span>[<a href="#MSF" class="cite xref">MSF</a>]</span>.<a href="#section-6.1-5" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="catalog">
+<div id="collection-points">
 <section id="section-6.2">
-        <h3 id="name-catalog-directed-delivery">
-<a href="#section-6.2" class="section-number selfRef">6.2. </a><a href="#name-catalog-directed-delivery" class="section-name selfRef">Catalog-Directed Delivery</a>
+        <h3 id="name-collection-points">
+<a href="#section-6.2" class="section-number selfRef">6.2. </a><a href="#name-collection-points" class="section-name selfRef">Collection Points</a>
         </h3>
-<p id="section-6.2-1">An MSF <span>[<a href="#MSF" class="cite xref">MSF</a>]</span> or CMSF <span>[<a href="#CMSF" class="cite xref">CMSF</a>]</span> catalog requests analytics by declaring an
-analytics track in its <code>publishTracks</code> array. The track object:<a href="#section-6.2-1" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-6.2-2.1">
-            <p id="section-6.2-2.1.1"><span class="bcp14">MUST</span> have a <code>packaging</code> value of <code>moqanalytics</code>;<a href="#section-6.2-2.1.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-6.2-2.2">
-            <p id="section-6.2-2.2.1"><span class="bcp14">MUST</span> have a <code>role</code> value of <code>metrics</code>;<a href="#section-6.2-2.2.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-6.2-2.3">
-            <p id="section-6.2-2.3.1"><span class="bcp14">MUST</span> have a <code>mimeType</code> value identifying the encoding (<a href="#encodings" class="auto internal xref">Section 5.1</a>); and<a href="#section-6.2-2.3.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-6.2-2.4">
-            <p id="section-6.2-2.4.1"><span class="bcp14">MAY</span> include the <code>connectionUri</code> and <code>token</code> fields defined by <span>[<a href="#MSF" class="cite xref">MSF</a>]</span>, to
-direct reports to a collector other than the catalog's origin and to
-authorize publishing.<a href="#section-6.2-2.4.1" class="pilcrow">¶</a></p>
-</li>
-        </ul>
-<p id="section-6.2-3">This document defines two additional track object fields:<a href="#section-6.2-3" class="pilcrow">¶</a></p>
-<span class="break"></span><dl class="dlParallel" id="section-6.2-4">
-          <dt id="section-6.2-4.1">
-<code>metricSets</code>:</dt>
-          <dd style="margin-left: 1.5em" id="section-6.2-4.2">
-            <p id="section-6.2-4.2.1">An array of metric set types the subscriber is asked to report. A subscriber
-<span class="bcp14">SHOULD</span> report the requested sets that it can measure, and <span class="bcp14">SHOULD NOT</span> report
-other sets.<a href="#section-6.2-4.2.1" class="pilcrow">¶</a></p>
+<p id="section-6.2-1">A reporter publishes its analytics track to a collection point. The collection
+point can be the edge relay to which the reporter is connected, a relay further
+upstream, an origin, or a dedicated collector. The analytics track format
+(<a href="#analytics-tracks" class="auto internal xref">Section 6.1</a>), the Metric Report (<a href="#report" class="auto internal xref">Section 5</a>), and correlation
+(<a href="#correlation" class="auto internal xref">Section 7</a>) are the same at every collection point. Only the endpoint
+differs, and it is selected by the catalog (<a href="#catalog" class="auto internal xref">Section 6.6</a>), by configuration
+(<a href="#configured" class="auto internal xref">Section 6.7</a>), or by redirection (<a href="#redirection" class="auto internal xref">Section 6.5</a>).<a href="#section-6.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="reverse-path">
+<section id="section-6.3">
+        <h3 id="name-reverse-path-delivery">
+<a href="#section-6.3" class="section-number selfRef">6.3. </a><a href="#name-reverse-path-delivery" class="section-name selfRef">Reverse-Path Delivery</a>
+        </h3>
+<p id="section-6.3-1">In reverse-path delivery, a reporter publishes its analytics track on the same
+MoQT session that it uses for media. For a subscriber, reports then travel
+toward the publisher along the reverse of the media delivery path, and the first
+collection point is the edge relay that serves the subscriber. For a publisher,
+the first collection point is the relay that receives its media.<a href="#section-6.3-1" class="pilcrow">¶</a></p>
+<p id="section-6.3-2">The edge relay is often the best first-hop collection point. It already
+terminates the reporter's session, so it can combine the reporter's metric sets
+with its own measurements of that session without any additional signaling
+(<a href="#correlation" class="auto internal xref">Section 7</a>). It can also aggregate reports from many reporters before
+sending them upstream, which reduces the volume of analytics leaving the edge.<a href="#section-6.3-2" class="pilcrow">¶</a></p>
+<p id="section-6.3-3">These benefits depend on the relay being trusted with the reports. A relay <span class="bcp14">MUST NOT</span> read, aggregate, or export the Metric Reports of other reporters unless it is
+operated by, or on behalf of, the party that requested them, for example the
+service provider that publishes the content or a provider that collects metrics
+on that publisher's behalf. Other relays forward analytics tracks without
+reading them.<a href="#section-6.3-3" class="pilcrow">¶</a></p>
+<p id="section-6.3-4">A relay that receives an analytics track on the reverse path does one of the
+following:<a href="#section-6.3-4" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-6.3-5">
+          <dt id="section-6.3-5.1">Forward:</dt>
+          <dd style="margin-left: 1.5em" id="section-6.3-5.2">
+            <p id="section-6.3-5.2.1">The relay forwards the analytics track like any other track, to collection
+points that subscribe to it (<a href="#collector-subscription" class="auto internal xref">Section 6.8</a>). Reports <span class="bcp14">MAY</span> be
+protected end to end using <span>[<a href="#SECURE-OBJECTS" class="cite xref">SECURE-OBJECTS</a>]</span> so that the relay cannot read
+them.<a href="#section-6.3-5.2.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
-<dt id="section-6.2-4.3">
-<code>reportInterval</code>:</dt>
-          <dd style="margin-left: 1.5em" id="section-6.2-4.4">
-            <p id="section-6.2-4.4.1">The requested time between reports, in integer milliseconds.<a href="#section-6.2-4.4.1" class="pilcrow">¶</a></p>
+<dt id="section-6.3-5.3">Aggregate:</dt>
+          <dd style="margin-left: 1.5em" id="section-6.3-5.4">
+            <p id="section-6.3-5.4.1">The relay consumes the reports, combines them with its own metric sets, and
+publishes the result on its own analytics track (<a href="#aggregation" class="auto internal xref">Section 6.4</a>). The relay
+<span class="bcp14">MAY</span> also forward the original reports.<a href="#section-6.3-5.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-6.3-5.5">Redirect:</dt>
+          <dd style="margin-left: 1.5em" id="section-6.3-5.6">
+            <p id="section-6.3-5.6.1">The relay directs the reporter to another collection point
+(<a href="#redirection" class="auto internal xref">Section 6.5</a>).<a href="#section-6.3-5.6.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
 </dl>
-<p id="section-6.2-5">The <code>namespace</code> and <code>name</code> fields give the analytics track. The <code>namespace</code>
+<p id="section-6.3-6">When the edge relay is not operated by or on behalf of the party requesting
+analytics, or is otherwise not a suitable collection point, the reporter
+delivers its reports to another collection point, identified by a catalog
+<code>connectionUri</code> or by configuration. The mechanisms in this document apply in
+the same way, and are equally useful, at that collection point.<a href="#section-6.3-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="aggregation">
+<section id="section-6.4">
+        <h3 id="name-relay-aggregation">
+<a href="#section-6.4" class="section-number selfRef">6.4. </a><a href="#name-relay-aggregation" class="section-name selfRef">Relay Aggregation</a>
+        </h3>
+<p id="section-6.4-1">An aggregating relay combines metric sets of the same type from several
+reporters, for example all <code>playback</code> sets for one track, into a single metric
+set that it reports under its own reporter <code>id</code>. In an aggregated metric set:<a href="#section-6.4-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-6.4-2.1">
+            <p id="section-6.4-2.1.1">the <code>sources</code> member <span class="bcp14">MUST</span> give the number of metric sets combined;<a href="#section-6.4-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.4-2.2">
+            <p id="section-6.4-2.2.1">each counter is the sum of the corresponding counters;<a href="#section-6.4-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.4-2.3">
+            <p id="section-6.4-2.3.1">each histogram is the merge of the corresponding histograms, which requires
+that they use the same bounds;<a href="#section-6.4-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.4-2.4">
+            <p id="section-6.4-2.4.1">each gauge is the mean of the corresponding gauges; and<a href="#section-6.4-2.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.4-2.5">
+            <p id="section-6.4-2.5.1">an attribute is included only if it has the same value in every combined
+set.<a href="#section-6.4-2.5.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-6.4-3">A relay chooses which metric sets to combine, and <span class="bcp14">MUST NOT</span> combine sets from
+reporters whose reports it is not permitted to read. An aggregated metric set is
+a claim by the aggregating relay and <span class="bcp14">MUST NOT</span> be presented as the observation of
+any single reporter.<a href="#section-6.4-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="redirection">
+<section id="section-6.5">
+        <h3 id="name-redirecting-analytics">
+<a href="#section-6.5" class="section-number selfRef">6.5. </a><a href="#name-redirecting-analytics" class="section-name selfRef">Redirecting Analytics</a>
+        </h3>
+<p id="section-6.5-1">A collection point uses the following MoQT <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> mechanisms to move analytics
+delivery to another collection point:<a href="#section-6.5-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-6.5-2.1">
+            <p id="section-6.5-2.1.1">A collection point that does not accept an analytics track rejects the
+request that publishes it with a REQUEST_ERROR containing a Redirect, which
+names the URI of another collection point and, optionally, a different track.<a href="#section-6.5-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.5-2.2">
+            <p id="section-6.5-2.2.1">A collection point moves an established analytics track by sending GOAWAY on
+the request stream of that track. This migrates only the analytics track and
+leaves the reporter's media on the session unaffected.<a href="#section-6.5-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.5-2.3">
+            <p id="section-6.5-2.3.1">A server moves an entire session, including its analytics tracks, by sending
+GOAWAY on the control stream.<a href="#section-6.5-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-6.5-3">A reporter treats the new collection point in the same way as the original one.
+It does not resend reports that it has already delivered. A collector detects
+any gap from the <code>sequence</code> field, and no counts are lost because counters are
+cumulative. A collection point that redirects reporters is responsible for
+ensuring that the target collection point accepts the reporters' authorization.<a href="#section-6.5-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="catalog">
+<section id="section-6.6">
+        <h3 id="name-catalog-directed-delivery">
+<a href="#section-6.6" class="section-number selfRef">6.6. </a><a href="#name-catalog-directed-delivery" class="section-name selfRef">Catalog-Directed Delivery</a>
+        </h3>
+<p id="section-6.6-1">An MSF <span>[<a href="#MSF" class="cite xref">MSF</a>]</span> or CMSF <span>[<a href="#CMSF" class="cite xref">CMSF</a>]</span> catalog requests analytics by declaring an
+analytics track in its <code>publishTracks</code> array. The track object:<a href="#section-6.6-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-6.6-2.1">
+            <p id="section-6.6-2.1.1"><span class="bcp14">MUST</span> have a <code>packaging</code> value of <code>moqanalytics</code>;<a href="#section-6.6-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.6-2.2">
+            <p id="section-6.6-2.2.1"><span class="bcp14">MUST</span> have a <code>role</code> value of <code>metrics</code>;<a href="#section-6.6-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.6-2.3">
+            <p id="section-6.6-2.3.1"><span class="bcp14">MUST</span> have a <code>mimeType</code> value identifying the encoding (<a href="#encodings" class="auto internal xref">Section 5.1</a>); and<a href="#section-6.6-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.6-2.4">
+            <p id="section-6.6-2.4.1"><span class="bcp14">MAY</span> include the <code>connectionUri</code> and <code>token</code> fields defined by <span>[<a href="#MSF" class="cite xref">MSF</a>]</span>, to
+direct reports to a collector other than the catalog's origin and to
+authorize publishing.<a href="#section-6.6-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-6.6-3">When <code>connectionUri</code> is absent, MSF specifies that the subscriber reuses the
+session on which it received the catalog, which results in reverse-path
+delivery (<a href="#reverse-path" class="auto internal xref">Section 6.3</a>).<a href="#section-6.6-3" class="pilcrow">¶</a></p>
+<p id="section-6.6-4">This document defines two additional track object fields:<a href="#section-6.6-4" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-6.6-5">
+          <dt id="section-6.6-5.1">
+<code>metricSets</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-6.6-5.2">
+            <p id="section-6.6-5.2.1">An array of metric set types the subscriber is asked to report. A subscriber
+<span class="bcp14">SHOULD</span> report the requested sets that it can measure, and <span class="bcp14">SHOULD NOT</span> report
+other sets.<a href="#section-6.6-5.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-6.6-5.3">
+<code>reportInterval</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-6.6-5.4">
+            <p id="section-6.6-5.4.1">The requested time between reports, in integer milliseconds.<a href="#section-6.6-5.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-6.6-6">The <code>namespace</code> and <code>name</code> fields give the analytics track. The <code>namespace</code>
           <span class="bcp14">MAY</span> contain the placeholder <code>%reporterId%</code>, which the subscriber replaces with
-its reporter <code>id</code>.<a href="#section-6.2-5" class="pilcrow">¶</a></p>
-<p id="section-6.2-6">A subscriber that does not support the encoding identified by <code>mimeType</code> <span class="bcp14">MUST NOT</span> publish that analytics track.<a href="#section-6.2-6" class="pilcrow">¶</a></p>
+its reporter <code>id</code>.<a href="#section-6.6-6" class="pilcrow">¶</a></p>
+<p id="section-6.6-7">A subscriber that does not support the encoding identified by <code>mimeType</code> <span class="bcp14">MUST NOT</span> publish that analytics track.<a href="#section-6.6-7" class="pilcrow">¶</a></p>
 <span id="name-catalog-requesting-analytic"></span><figure id="figure-2">
-          <div class="lang-json sourcecode" id="section-6.2-7.1">
+          <div class="lang-json sourcecode" id="section-6.6-8.1">
 <pre>
 "publishTracks": [
   {
@@ -2748,87 +2956,147 @@ its reporter <code>id</code>.<a href="#section-6.2-5" class="pilcrow">¶</a></p>
 <figcaption><a href="#figure-2" class="selfRef">Figure 2</a>:
 <a href="#name-catalog-requesting-analytic" class="selfRef">Catalog Requesting Analytics</a>
           </figcaption></figure>
-<p id="section-6.2-8">Because CMSF uses the MSF catalog, the same declaration applies to CMSF
+<p id="section-6.6-9">Because CMSF uses the MSF catalog, the same declaration applies to CMSF
 catalogs. A catalog <span class="bcp14">MAY</span> declare several analytics tracks, for example one with
 a short interval for QoE metrics and one with a long interval for transport
-metrics.<a href="#section-6.2-8" class="pilcrow">¶</a></p>
+metrics.<a href="#section-6.6-9" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="configured">
-<section id="section-6.3">
+<section id="section-6.7">
         <h3 id="name-reporter-configured-deliver">
-<a href="#section-6.3" class="section-number selfRef">6.3. </a><a href="#name-reporter-configured-deliver" class="section-name selfRef">Reporter-Configured Delivery</a>
+<a href="#section-6.7" class="section-number selfRef">6.7. </a><a href="#name-reporter-configured-deliver" class="section-name selfRef">Reporter-Configured Delivery</a>
         </h3>
-<p id="section-6.3-1">A reporter <span class="bcp14">MAY</span> be configured by its application or operator with a collector
+<p id="section-6.7-1">A reporter <span class="bcp14">MAY</span> be configured by its application or operator with a collector
 endpoint, credentials, an analytics track, an encoding, metric sets, and a
 reporting interval. The reporter establishes a MoQT session to the collector,
 if needed, and publishes the analytics track as described in
-<a href="#analytics-tracks" class="auto internal xref">Section 6.1</a>.<a href="#section-6.3-1" class="pilcrow">¶</a></p>
-<p id="section-6.3-2">This mode supports deployments that do not use MSF, and lets publishers and
-relays report to an operator's collector.<a href="#section-6.3-2" class="pilcrow">¶</a></p>
+<a href="#analytics-tracks" class="auto internal xref">Section 6.1</a>.<a href="#section-6.7-1" class="pilcrow">¶</a></p>
+<p id="section-6.7-2">This mode supports deployments that do not use MSF, and lets publishers and
+relays report to an operator's collector.<a href="#section-6.7-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="collector-subscription">
-<section id="section-6.4">
+<section id="section-6.8">
         <h3 id="name-collector-subscription">
-<a href="#section-6.4" class="section-number selfRef">6.4. </a><a href="#name-collector-subscription" class="section-name selfRef">Collector Subscription</a>
+<a href="#section-6.8" class="section-number selfRef">6.8. </a><a href="#name-collector-subscription" class="section-name selfRef">Collector Subscription</a>
         </h3>
-<p id="section-6.4-1">A relay or publisher <span class="bcp14">MAY</span> publish its analytics track continuously within a
-namespace that collectors can subscribe to. Collectors then subscribe only to
+<p id="section-6.8-1">A reporter <span class="bcp14">MAY</span> publish its analytics track continuously within a namespace that
+collection points can subscribe to. Collectors then subscribe only to
 the reporters and tracks they need, and relays cache recent reports for later
 retrieval with FETCH. This allows metrics to be pulled on demand rather than
-pushed to every collector.<a href="#section-6.4-1" class="pilcrow">¶</a></p>
+pushed to every collector. Because analytics tracks from many reporters can
+share a namespace, a collection point that subscribes to that namespace at an
+upstream relay receives the analytics tracks forwarded by every relay below it.<a href="#section-6.8-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="correlation">
+<section id="section-7">
+      <h2 id="name-combining-reports">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-combining-reports" class="section-name selfRef">Combining Reports</a>
+      </h2>
+<p id="section-7-1">Complete observability of a MoQT delivery combines metric sets from several
+reporters. A subscriber observes playback and the last hop, each relay observes
+its own sessions and cache, and a publisher observes encoding and the first
+hop. Because all reporters use the same data model, a collector can combine
+their metric sets, provided that it can determine which metric sets describe the
+same MoQT session.<a href="#section-7-1" class="pilcrow">¶</a></p>
+<p id="section-7-2">Both endpoints of a session can report a <code>session</code> set for it. Their metric sets
+are joined in one of the following ways:<a href="#section-7-2" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-7-3">
+        <dt id="section-7-3.1">Implicit binding:</dt>
+        <dd style="margin-left: 1.5em" id="section-7-3.2">
+          <p id="section-7-3.2.1">When a reporter uses reverse-path delivery (<a href="#reverse-path" class="auto internal xref">Section 6.3</a>), the
+collection point at the other end of the session knows the session on which
+the reports arrive. It records the reporter's <code>id</code> in the <code>peerReporterId</code>
+member of its own <code>session</code> set, and an aggregating relay can combine the
+metric sets directly.<a href="#section-7-3.2.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-7-3.3">Correlation ID:</dt>
+        <dd style="margin-left: 1.5em" id="section-7-3.4">
+          <p id="section-7-3.4.1">When reports are delivered to another collection point, both endpoints report
+the session's correlation ID (<a href="#correlation-id" class="auto internal xref">Section 7.1</a>) in the <code>correlationId</code>
+member of their <code>session</code> sets, and a collector joins sets with equal values.<a href="#section-7-3.4.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+<p id="section-7-4">A relay relates its downstream and upstream sessions through the tracks that it
+forwards, as described by its <code>inbound-track</code> and <code>outbound-track</code> sets. A
+collector can therefore follow a track from publisher to subscriber across the
+correlated sessions along its path.<a href="#section-7-4" class="pilcrow">¶</a></p>
+<p id="section-7-5">Joining metric sets by time also requires that reporters' clocks are
+synchronized. Collectors <span class="bcp14">SHOULD</span> allow for clock differences between reporters
+when combining their metric sets.<a href="#section-7-5" class="pilcrow">¶</a></p>
+<div id="correlation-id">
+<section id="section-7.1">
+        <h3 id="name-correlation_id-setup-option">
+<a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-correlation_id-setup-option" class="section-name selfRef">CORRELATION_ID Setup Option</a>
+        </h3>
+<p id="section-7.1-1">A MoQT client <span class="bcp14">MAY</span> include the CORRELATION_ID Setup Option in its SETUP message
+(<span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span>). Its value is an opaque byte string of 8 to 32 bytes that the client
+generates randomly for each session. A client <span class="bcp14">MUST NOT</span> use the same value for
+more than one session, and <span class="bcp14">MUST NOT</span> derive it from an identifier of the user or
+device.<a href="#section-7.1-1" class="pilcrow">¶</a></p>
+<p id="section-7.1-2">A server that receives the CORRELATION_ID Setup Option <span class="bcp14">SHOULD</span> report its value
+in the <code>correlationId</code> member of its <code>session</code> set for the session, and the
+client reports the same value in its own <code>session</code> set. A relay that is itself
+a client of an upstream relay generates a separate value for each upstream
+session. Endpoints that do not implement this document ignore the option, as
+<span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> requires for unknown Setup Options.<a href="#section-7.1-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
 </div>
 <div id="export">
-<section id="section-7">
+<section id="section-8">
       <h2 id="name-export-to-monitoring-system">
-<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-export-to-monitoring-system" class="section-name selfRef">Export to Monitoring Systems</a>
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-export-to-monitoring-system" class="section-name selfRef">Export to Monitoring Systems</a>
       </h2>
-<p id="section-7-1">An implementation <span class="bcp14">MAY</span> export metric sets to OpenMetrics <span>[<a href="#OPENMETRICS" class="cite xref">OPENMETRICS</a>]</span>,
+<p id="section-8-1">An implementation <span class="bcp14">MAY</span> export metric sets to OpenMetrics <span>[<a href="#OPENMETRICS" class="cite xref">OPENMETRICS</a>]</span>,
 OpenTelemetry <span>[<a href="#OTEL" class="cite xref">OTEL</a>]</span>, or another monitoring system. To keep metric names
 consistent across implementations, an exported metric name <span class="bcp14">SHOULD</span> be formed by
-joining the following with underscores:<a href="#section-7-1" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-7-2">
-<li id="section-7-2.1">
-          <p id="section-7-2.1.1">the prefix <code>moq</code>;<a href="#section-7-2.1.1" class="pilcrow">¶</a></p>
+joining the following with underscores:<a href="#section-8-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-8-2">
+<li id="section-8-2.1">
+          <p id="section-8-2.1.1">the prefix <code>moq</code>;<a href="#section-8-2.1.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="section-7-2.2">
-          <p id="section-7-2.2.1">the metric set type, with hyphens replaced by underscores;<a href="#section-7-2.2.1" class="pilcrow">¶</a></p>
+        <li id="section-8-2.2">
+          <p id="section-8-2.2.1">the metric set type, with hyphens replaced by underscores;<a href="#section-8-2.2.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="section-7-2.3">
-          <p id="section-7-2.3.1">the member name, converted from lowerCamelCase to lowercase words separated
-by underscores; and<a href="#section-7-2.3.1" class="pilcrow">¶</a></p>
+        <li id="section-8-2.3">
+          <p id="section-8-2.3.1">the member name, converted from lowerCamelCase to lowercase words separated
+by underscores; and<a href="#section-8-2.3.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="section-7-2.4">
-          <p id="section-7-2.4.1">for counters, the suffix <code>total</code>.<a href="#section-7-2.4.1" class="pilcrow">¶</a></p>
+        <li id="section-8-2.4">
+          <p id="section-8-2.4.1">for counters, the suffix <code>total</code>.<a href="#section-8-2.4.1" class="pilcrow">¶</a></p>
 </li>
       </ol>
-<p id="section-7-3">For example, <code>objectsLost</code> in an <code>inbound-track</code> set is exported as
+<p id="section-8-3">For example, <code>objectsLost</code> in an <code>inbound-track</code> set is exported as
 <code>moq_inbound_track_objects_lost_total</code>. Histograms map to explicit bucket
 histograms. Identifying attributes such as <code>kind</code> or <code>trackName</code> <span class="bcp14">MAY</span> be exported
-as labels, subject to the guidance in <a href="#cardinality" class="auto internal xref">Section 3.5</a>.<a href="#section-7-3" class="pilcrow">¶</a></p>
-<p id="section-7-4">qlog <span>[<a href="#MOQ-QLOG" class="cite xref">MOQ-QLOG</a>]</span> is better suited than metric sets for event traces and
+as labels, subject to the guidance in <a href="#cardinality" class="auto internal xref">Section 3.5</a>.<a href="#section-8-3" class="pilcrow">¶</a></p>
+<p id="section-8-4">qlog <span>[<a href="#MOQ-QLOG" class="cite xref">MOQ-QLOG</a>]</span> is better suited than metric sets for event traces and
 protocol debugging. An implementation <span class="bcp14">MAY</span> correlate metric sets with qlog
-events using a session identifier.<a href="#section-7-4" class="pilcrow">¶</a></p>
+events using a session identifier.<a href="#section-8-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="mappings-from-existing-vocabularies">
-<section id="section-8">
+<section id="section-9">
       <h2 id="name-mappings-from-existing-voca">
-<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-mappings-from-existing-voca" class="section-name selfRef">Mappings from Existing Vocabularies</a>
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-mappings-from-existing-voca" class="section-name selfRef">Mappings from Existing Vocabularies</a>
       </h2>
 <div id="webrtc-statistics">
-<section id="section-8.1">
+<section id="section-9.1">
         <h3 id="name-webrtc-statistics">
-<a href="#section-8.1" class="section-number selfRef">8.1. </a><a href="#name-webrtc-statistics" class="section-name selfRef">WebRTC Statistics</a>
+<a href="#section-9.1" class="section-number selfRef">9.1. </a><a href="#name-webrtc-statistics" class="section-name selfRef">WebRTC Statistics</a>
         </h3>
-<p id="section-8.1-1">The metric sets in this document follow the model of the WebRTC statistics API
+<p id="section-9.1-1">The metric sets in this document follow the model of the WebRTC statistics API
 <span>[<a href="#WEBRTC-STATS" class="cite xref">WEBRTC-STATS</a>]</span>, and media members share names with WebRTC statistics where
 the definitions match. The following WebRTC statistics types correspond to
-metric set types:<a href="#section-8.1-1" class="pilcrow">¶</a></p>
+metric set types:<a href="#section-9.1-1" class="pilcrow">¶</a></p>
 <span id="name-webrtc-statistics-types"></span><table class="center" id="table-2">
           <caption>
 <a href="#table-2" class="selfRef">Table 2</a>:
@@ -2874,36 +3142,36 @@ metric set types:<a href="#section-8.1-1" class="pilcrow">¶</a></p>
             </tr>
           </tbody>
         </table>
-<p id="section-8.1-3">The following members differ from their WebRTC counterparts:<a href="#section-8.1-3" class="pilcrow">¶</a></p>
+<p id="section-9.1-3">The following members differ from their WebRTC counterparts:<a href="#section-9.1-3" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-8.1-4.1">
-            <p id="section-8.1-4.1.1"><code>currentRoundTripTime</code> corresponds to <code>latestRtt</code> or <code>smoothedRtt</code>, depending
-on how the implementation computes it;<a href="#section-8.1-4.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="section-9.1-4.1">
+            <p id="section-9.1-4.1.1"><code>currentRoundTripTime</code> corresponds to <code>latestRtt</code> or <code>smoothedRtt</code>, depending
+on how the implementation computes it;<a href="#section-9.1-4.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-8.1-4.2">
-            <p id="section-8.1-4.2.1"><code>availableOutgoingBitrate</code> corresponds to <code>availableBitrate</code>;<a href="#section-8.1-4.2.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-9.1-4.2">
+            <p id="section-9.1-4.2.1"><code>availableOutgoingBitrate</code> corresponds to <code>availableBitrate</code>;<a href="#section-9.1-4.2.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-8.1-4.3">
-            <p id="section-8.1-4.3.1"><code>frameWidth</code> and <code>frameHeight</code> correspond to <code>width</code> and <code>height</code>; and<a href="#section-8.1-4.3.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-9.1-4.3">
+            <p id="section-9.1-4.3.1"><code>frameWidth</code> and <code>frameHeight</code> correspond to <code>width</code> and <code>height</code>; and<a href="#section-9.1-4.3.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-8.1-4.4">
-            <p id="section-8.1-4.4.1">RTP <code>jitter</code> is not equivalent to object <code>interarrival</code> in an
-<code>inbound-track</code> set.<a href="#section-8.1-4.4.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-9.1-4.4">
+            <p id="section-9.1-4.4.1">RTP <code>jitter</code> is not equivalent to object <code>interarrival</code> in an
+<code>inbound-track</code> set.<a href="#section-9.1-4.4.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-8.1-5">A MoQT implementation <span class="bcp14">MUST NOT</span> report a member derived from a WebRTC statistic
-that it has not collected at the corresponding point.<a href="#section-8.1-5" class="pilcrow">¶</a></p>
+<p id="section-9.1-5">A MoQT implementation <span class="bcp14">MUST NOT</span> report a member derived from a WebRTC statistic
+that it has not collected at the corresponding point.<a href="#section-9.1-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="cmcd-and-cmsd">
-<section id="section-8.2">
+<section id="section-9.2">
         <h3 id="name-cmcd-and-cmsd">
-<a href="#section-8.2" class="section-number selfRef">8.2. </a><a href="#name-cmcd-and-cmsd" class="section-name selfRef">CMCD and CMSD</a>
+<a href="#section-9.2" class="section-number selfRef">9.2. </a><a href="#name-cmcd-and-cmsd" class="section-name selfRef">CMCD and CMSD</a>
         </h3>
-<p id="section-8.2-1">Common Media Client Data <span>[<a href="#CMCD" class="cite xref">CMCD</a>]</span> and Common Media Server Data <span>[<a href="#CMSD" class="cite xref">CMSD</a>]</span> carry
+<p id="section-9.2-1">Common Media Client Data <span>[<a href="#CMCD" class="cite xref">CMCD</a>]</span> and Common Media Server Data <span>[<a href="#CMSD" class="cite xref">CMSD</a>]</span> carry
 client and server delivery information in HTTP adaptive streaming. MoQT has no
 HTTP requests or responses, so their keys are not carried directly. The
-following correspondence is informative:<a href="#section-8.2-1" class="pilcrow">¶</a></p>
+following correspondence is informative:<a href="#section-9.2-1" class="pilcrow">¶</a></p>
 <span id="name-cmcd-and-cmsd-correspondenc"></span><table class="center" id="table-3">
           <caption>
 <a href="#table-3" class="selfRef">Table 3</a>:
@@ -2999,95 +3267,132 @@ following correspondence is informative:<a href="#section-8.2-1" class="pilcrow"
             </tr>
           </tbody>
         </table>
-<p id="section-8.2-3">CMCD measured throughput is a client measurement of achieved throughput,
+<p id="section-9.2-3">CMCD measured throughput is a client measurement of achieved throughput,
 whereas CMSD estimated throughput is a server estimate. A CMSD maximum
 suggested bitrate is a recommendation rather than a measurement and has no
-corresponding member.<a href="#section-8.2-3" class="pilcrow">¶</a></p>
+corresponding member.<a href="#section-9.2-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
 </div>
 <div id="security-considerations">
-<section id="section-9">
+<section id="section-10">
       <h2 id="name-security-considerations">
-<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
       </h2>
-<p id="section-9-1">Metric Reports can influence operational decisions such as rate adaptation,
+<p id="section-10-1">Metric Reports can influence operational decisions such as rate adaptation,
 relay selection, and capacity planning, and are therefore targets for
-spoofing, injection, and replay.<a href="#section-9-1" class="pilcrow">¶</a></p>
-<p id="section-9-2">A Metric Report <span class="bcp14">MUST NOT</span> be assumed to be accurate merely because it arrived
+spoofing, injection, and replay.<a href="#section-10-1" class="pilcrow">¶</a></p>
+<p id="section-10-2">A Metric Report <span class="bcp14">MUST NOT</span> be assumed to be accurate merely because it arrived
 over an authenticated MoQT session. A subscriber can report incorrect playback
 state, and a relay can report incorrect operational state. Collectors <span class="bcp14">SHOULD</span>
-treat reports as claims made by the named reporter.<a href="#section-9-2" class="pilcrow">¶</a></p>
-<p id="section-9-3">A catalog that includes a <code>connectionUri</code> directs subscribers to connect to
+treat reports as claims made by the named reporter.<a href="#section-10-2" class="pilcrow">¶</a></p>
+<p id="section-10-3">A catalog that includes a <code>connectionUri</code> directs subscribers to connect to
 another endpoint. A subscriber <span class="bcp14">MUST NOT</span> follow a <code>connectionUri</code> from a catalog
 that it did not receive from an authenticated, authorized source, since
 otherwise an attacker could direct subscribers to connect to arbitrary hosts.
 Tokens in the catalog <span class="bcp14">SHOULD</span> be scoped to the analytics track and have a short
-lifetime.<a href="#section-9-3" class="pilcrow">¶</a></p>
-<p id="section-9-4">Collectors and relays <span class="bcp14">SHOULD</span> limit the size and rate of Metric Reports and the
+lifetime.<a href="#section-10-3" class="pilcrow">¶</a></p>
+<p id="section-10-4">Collectors and relays <span class="bcp14">SHOULD</span> limit the size and rate of Metric Reports and the
 number of distinct metric sets accepted from each reporter, to limit resource
 exhaustion. Relays <span class="bcp14">SHOULD</span> apply the same authorization to analytics tracks as
 to other tracks. When relays must not read analytics, the reporter can protect
-objects end to end using <span>[<a href="#SECURE-OBJECTS" class="cite xref">SECURE-OBJECTS</a>]</span>.<a href="#section-9-4" class="pilcrow">¶</a></p>
+objects end to end using <span>[<a href="#SECURE-OBJECTS" class="cite xref">SECURE-OBJECTS</a>]</span>.<a href="#section-10-4" class="pilcrow">¶</a></p>
+<p id="section-10-5">A relay that reads or aggregates the reports of other reporters learns their
+contents, so relays are restricted to doing so only when operated by or on
+behalf of the party that requested the reports (<a href="#reverse-path" class="auto internal xref">Section 6.3</a>). Aggregated
+metric sets are claims by the aggregating relay, and collectors <span class="bcp14">SHOULD</span> weigh
+them according to their trust in that relay.<a href="#section-10-5" class="pilcrow">¶</a></p>
+<p id="section-10-6">A reporter follows a Redirect or GOAWAY only from the peer of an authenticated
+MoQT session, as <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> specifies. Redirection could otherwise be used to
+divert reports to an unintended collector.<a href="#section-10-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="privacy-considerations">
-<section id="section-10">
+<section id="section-11">
       <h2 id="name-privacy-considerations">
-<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-privacy-considerations" class="section-name selfRef">Privacy Considerations</a>
+<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-privacy-considerations" class="section-name selfRef">Privacy Considerations</a>
       </h2>
-<p id="section-10-1">Metrics can reveal track names, viewing behavior, network characteristics,
-device capabilities, and topology, and can be used to identify or track users.<a href="#section-10-1" class="pilcrow">¶</a></p>
-<p id="section-10-2">A reporter <code>id</code> <span class="bcp14">SHOULD NOT</span> be derived from a stable hardware identifier, such as
+<p id="section-11-1">Metrics can reveal track names, viewing behavior, network characteristics,
+device capabilities, and topology, and can be used to identify or track users.<a href="#section-11-1" class="pilcrow">¶</a></p>
+<p id="section-11-2">A reporter <code>id</code> <span class="bcp14">SHOULD NOT</span> be derived from a stable hardware identifier, such as
 a network interface hardware address, and subscribers <span class="bcp14">SHOULD</span> use a reporter <code>id</code>
 that is not linkable across sessions unless the user has agreed otherwise.
 Reporters <span class="bcp14">SHOULD</span> report track names only when they are needed
 (<a href="#cardinality" class="auto internal xref">Section 3.5</a>). Collectors <span class="bcp14">SHOULD</span> aggregate subscriber metrics where
 individual detail is not needed, and <span class="bcp14">SHOULD</span> document retention policies for
-subscriber metrics.<a href="#section-10-2" class="pilcrow">¶</a></p>
+subscriber metrics.<a href="#section-11-2" class="pilcrow">¶</a></p>
+<p id="section-11-3">The correlation ID links a subscriber's reports to a relay's records of the
+same session. It is generated per session (<a href="#correlation-id" class="auto internal xref">Section 7.1</a>) so that it does
+not link a subscriber's sessions to one another. Aggregation at a relay
+(<a href="#aggregation" class="auto internal xref">Section 6.4</a>) can reduce the amount of per-subscriber data that leaves the
+edge.<a href="#section-11-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="iana">
-<section id="section-11">
+<section id="section-12">
       <h2 id="name-iana-considerations">
-<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+<a href="#section-12" class="section-number selfRef">12. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
       </h2>
-<p id="section-11-1">This document has no IANA actions. A future revision is expected to request:<a href="#section-11-1" class="pilcrow">¶</a></p>
+<p id="section-12-1">This document requests that IANA register the following entry in the "Setup
+Options" registry established by <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span>:<a href="#section-12-1" class="pilcrow">¶</a></p>
+<span id="name-setup-option-registration"></span><table class="center" id="table-4">
+        <caption>
+<a href="#table-4" class="selfRef">Table 4</a>:
+<a href="#name-setup-option-registration" class="selfRef">Setup Option Registration</a>
+        </caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">Type</th>
+            <th class="text-left" rowspan="1" colspan="1">Name</th>
+            <th class="text-left" rowspan="1" colspan="1">Specification</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">TBD (odd value)</td>
+            <td class="text-left" rowspan="1" colspan="1">CORRELATION_ID</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <a href="#correlation-id" class="auto internal xref">Section 7.1</a>
+</td>
+          </tr>
+        </tbody>
+      </table>
+<p id="section-12-3">A future revision is expected to request:<a href="#section-12-3" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-11-2.1">
-          <p id="section-11-2.1.1">registration of the media types <code>application/moq-analytics+json</code> and
-<code>application/moq-analytics+cbor</code>;<a href="#section-11-2.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="section-12-4.1">
+          <p id="section-12-4.1.1">registration of the media types <code>application/moq-analytics+json</code> and
+<code>application/moq-analytics+cbor</code>;<a href="#section-12-4.1.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-11-2.2">
-          <p id="section-11-2.2.1">registration of the MSF packaging value <code>moqanalytics</code>, if MSF establishes a
-registry for packaging values; and<a href="#section-11-2.2.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="section-12-4.2">
+          <p id="section-12-4.2.1">registration of the MSF packaging value <code>moqanalytics</code>, if MSF establishes a
+registry for packaging values; and<a href="#section-12-4.2.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-11-2.3">
-          <p id="section-11-2.3.1">a registry of metric set types and members, recording for each its name, a
+        <li class="normal" id="section-12-4.3">
+          <p id="section-12-4.3.1">a registry of metric set types and members, recording for each its name, a
 numeric identifier, its value type and unit, and its defining specification.
 Encodings that identify members by number (<a href="#encodings" class="auto internal xref">Section 5.1</a>) use these
-identifiers.<a href="#section-11-2.3.1" class="pilcrow">¶</a></p>
+identifiers.<a href="#section-12-4.3.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>
 </div>
 <div id="use-of-generative-ai">
-<section id="section-12">
+<section id="section-13">
       <h2 id="name-use-of-generative-ai">
 <a href="#name-use-of-generative-ai" class="section-name selfRef">Use of Generative AI</a>
       </h2>
-<p id="section-12-1">Generative AI tools were used to assist with drafting and editing text for this
-document. All AI-generated content was reviewed and approved by the author.<a href="#section-12-1" class="pilcrow">¶</a></p>
+<p id="section-13-1">Generative AI tools were used to assist with drafting and editing text for this
+document. All AI-generated content was reviewed and approved by the author.<a href="#section-13-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="sec-combined-references">
-<section id="section-13">
+<section id="section-14">
       <h2 id="name-references">
 <a href="#name-references" class="section-name selfRef">References</a>
       </h2>
 <div id="sec-normative-references">
-<section id="section-13.1">
+<section id="section-14.1">
         <h3 id="name-normative-references">
 <a href="#name-normative-references" class="section-name selfRef">Normative References</a>
         </h3>
@@ -3128,7 +3433,7 @@ document. All AI-generated content was reviewed and approved by the author.<a hr
 </section>
 </div>
 <div id="sec-informative-references">
-<section id="section-13.2">
+<section id="section-14.2">
         <h3 id="name-informative-references">
 <a href="#name-informative-references" class="section-name selfRef">Informative References</a>
         </h3>
@@ -3251,6 +3556,7 @@ set-common&lt;T&gt; = (
   type: T,
   id: tstr,
   timestamp: timestamp,
+  ? sources: uint,   ; aggregated sets only
 )
 
 track-ref = (
@@ -3272,6 +3578,8 @@ session-set = {
   ? state: "connecting" / "established" / "draining" / "closed",
   ? setupTime: seconds,
   ? goawaysReceived: counter,
+  ? correlationId: tstr,
+  ? peerReporterId: tstr,
   * ext-key =&gt; any,
 }
 
@@ -3475,13 +3783,14 @@ mandatory only for collectors?<a href="#appendix-B-3.3.1" class="pilcrow">¶</a>
 cumulative temporality?<a href="#appendix-B-3.4.1" class="pilcrow">¶</a></p>
 </li>
         <li id="appendix-B-3.5">
-          <p id="appendix-B-3.5.1">Should analytics tracks use a new MSF packaging value, as proposed here, or a
-profile of the <code>moqmetrics</code> packaging of <span>[<a href="#MOQMETRICS" class="cite xref">MOQMETRICS</a>]</span>? MSF currently lists
-packaging values without a registry.<a href="#appendix-B-3.5.1" class="pilcrow">¶</a></p>
+          <p id="appendix-B-3.5.1">MSF currently lists packaging values without a registry, and defines the
+<code>metrics</code> role by reference to <span>[<a href="#MOQMETRICS" class="cite xref">MOQMETRICS</a>]</span>. Should MSF establish a
+packaging registry and generalize the <code>metrics</code> role, or should this document
+define its own role?<a href="#appendix-B-3.5.1" class="pilcrow">¶</a></p>
 </li>
         <li id="appendix-B-3.6">
-          <p id="appendix-B-3.6.1">Should analytics track names follow the granularity levels used by MSF
-metrics tracks?<a href="#appendix-B-3.6.1" class="pilcrow">¶</a></p>
+          <p id="appendix-B-3.6.1">Should a catalog be able to request, or forbid, aggregation of its analytics
+at relays?<a href="#appendix-B-3.6.1" class="pilcrow">¶</a></p>
 </li>
         <li id="appendix-B-3.7">
           <p id="appendix-B-3.7.1">How should track namespaces, which are tuples of byte strings in <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span>, be
@@ -3494,6 +3803,14 @@ with members defined here?<a href="#appendix-B-3.8.1" class="pilcrow">¶</a></p>
         <li id="appendix-B-3.9">
           <p id="appendix-B-3.9.1">What clock synchronization should be assumed for <code>latency</code> and
 <code>liveLatency</code>?<a href="#appendix-B-3.9.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-B-3.10">
+          <p id="appendix-B-3.10.1">How should an aggregated metric set represent the distribution of a gauge
+across reporters, rather than only its mean?<a href="#appendix-B-3.10.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-B-3.11">
+          <p id="appendix-B-3.11.1">Should a server also be able to send a correlation ID, for example so that
+the edge relay assigns it?<a href="#appendix-B-3.11.1" class="pilcrow">¶</a></p>
 </li>
       </ol>
 </section>
