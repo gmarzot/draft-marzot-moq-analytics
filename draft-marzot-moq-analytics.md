@@ -104,7 +104,11 @@ Metric Report that carries metric sets, specified in CDDL as a data model that
 is independent of encoding, with JSON and CBOR encodings. It also defines how
 Metric Reports are delivered as objects on MoQT analytics tracks, either to an
 endpoint directed by an MSF or CMSF catalog or to a collector configured by the
-reporter.
+reporter. It describes reverse-path delivery, in which a relay operated by or on
+behalf of the publisher acts as a first-hop collection point that can aggregate
+reports and correlate them with its own measurements, and it defines a
+correlation identifier that allows reports from subscribers, relays, and
+publishers to be combined at any collection point.
 
 --- middle
 
@@ -124,10 +128,11 @@ therefore cannot reliably compare a publisher's observations with a subscriber's
 observations or correlate them with relay and transport events.
 
 MSF {{MSF}} allows a catalog to declare publish tracks to which a subscriber
-sends metrics, and {{MOQMETRICS}} defines a generic metrics payload that carries
-one named gauge or counter per object. Neither defines what MoQT-specific
-metrics mean. This document fills that gap and defines a delivery format suited
-to it.
+sends metrics. MSF currently pairs those tracks with the generic payload of
+{{MOQMETRICS}}, which carries one named gauge or counter per object and does not
+define what any metric means. This document does not use or depend on that
+payload. It defines MoQT-specific metrics, a report format suited to them, and
+how reports are delivered and combined.
 
 ## Overview
 
@@ -146,8 +151,13 @@ Metric Reports ({{report}}):
 
 Delivery ({{delivery}}):
 : A mapping of Metric Reports onto the objects of a MoQT analytics track,
-  integration with the MSF and CMSF catalog, and delivery to a collector
-  configured by the reporter.
+  integration with the MSF and CMSF catalog, reverse-path delivery to and
+  aggregation at relays, delivery to other collection points, and redirection
+  between them.
+
+Correlation ({{correlation}}):
+: Means of combining metric sets from subscribers, relays, and publishers that
+  describe the same MoQT session.
 
 The metric sets are useful independently of the delivery mechanism. An
 implementation can also export them to OpenMetrics {{OPENMETRICS}} or
@@ -186,6 +196,19 @@ Metric Report:
 
 Analytics Track:
 : A MoQT track whose objects carry Metric Reports.
+
+Collection Point:
+: A MoQT endpoint that accepts analytics tracks, such as an edge relay, an
+  upstream relay, an origin, or a dedicated collector.
+
+Reverse-Path Delivery:
+: Delivery of a reporter's analytics track on the same MoQT session that the
+  reporter uses for media, so that the first collection point is the relay at
+  the other end of that session.
+
+Correlation ID:
+: A value shared by both endpoints of a MoQT session that allows their metric
+  sets for that session to be combined.
 
 Member and field names in this document use lowerCamelCase, consistent with
 {{WEBRTC-STATS}} and the MSF catalog. Metric set type names use lowercase words
@@ -283,6 +306,10 @@ Each metric set has the following members:
 : Required. The time at which the members of the set were sampled, in
   milliseconds since the Unix epoch.
 
+`sources`:
+: Attribute. Present only in an aggregated metric set ({{aggregation}}), where
+  it gives the number of metric sets that were combined.
+
 The following metric set types are defined:
 
 | Type | Layer | Describes |
@@ -319,6 +346,14 @@ The following metric set types are defined:
 
 `goawaysReceived`:
 : Counter. GOAWAY messages received.
+
+`correlationId`:
+: Attribute. The correlation ID of the session ({{correlation-id}}), as
+  lowercase hexadecimal.
+
+`peerReporterId`:
+: Attribute. The reporter `id` of the peer, when known, for example from an
+  analytics track that the peer publishes on this session.
 
 ## requests
 
@@ -863,6 +898,100 @@ reports that are no longer timely, and MAY send small reports as datagrams.
 When MSF is in use, a reporter MAY compress objects using the compression
 signaling defined in {{MSF}}.
 
+## Collection Points {#collection-points}
+
+A reporter publishes its analytics track to a collection point. The collection
+point can be the edge relay to which the reporter is connected, a relay further
+upstream, an origin, or a dedicated collector. The analytics track format
+({{analytics-tracks}}), the Metric Report ({{report}}), and correlation
+({{correlation}}) are the same at every collection point. Only the endpoint
+differs, and it is selected by the catalog ({{catalog}}), by configuration
+({{configured}}), or by redirection ({{redirection}}).
+
+## Reverse-Path Delivery {#reverse-path}
+
+In reverse-path delivery, a reporter publishes its analytics track on the same
+MoQT session that it uses for media. For a subscriber, reports then travel
+toward the publisher along the reverse of the media delivery path, and the first
+collection point is the edge relay that serves the subscriber. For a publisher,
+the first collection point is the relay that receives its media.
+
+The edge relay is often the best first-hop collection point. It already
+terminates the reporter's session, so it can combine the reporter's metric sets
+with its own measurements of that session without any additional signaling
+({{correlation}}). It can also aggregate reports from many reporters before
+sending them upstream, which reduces the volume of analytics leaving the edge.
+
+These benefits depend on the relay being trusted with the reports. A relay MUST
+NOT read, aggregate, or export the Metric Reports of other reporters unless it is
+operated by, or on behalf of, the party that requested them, for example the
+service provider that publishes the content or a provider that collects metrics
+on that publisher's behalf. Other relays forward analytics tracks without
+reading them.
+
+A relay that receives an analytics track on the reverse path does one of the
+following:
+
+Forward:
+: The relay forwards the analytics track like any other track, to collection
+  points that subscribe to it ({{collector-subscription}}). Reports MAY be
+  protected end to end using {{SECURE-OBJECTS}} so that the relay cannot read
+  them.
+
+Aggregate:
+: The relay consumes the reports, combines them with its own metric sets, and
+  publishes the result on its own analytics track ({{aggregation}}). The relay
+  MAY also forward the original reports.
+
+Redirect:
+: The relay directs the reporter to another collection point
+  ({{redirection}}).
+
+When the edge relay is not operated by or on behalf of the party requesting
+analytics, or is otherwise not a suitable collection point, the reporter
+delivers its reports to another collection point, identified by a catalog
+`connectionUri` or by configuration. The mechanisms in this document apply in
+the same way, and are equally useful, at that collection point.
+
+## Relay Aggregation {#aggregation}
+
+An aggregating relay combines metric sets of the same type from several
+reporters, for example all `playback` sets for one track, into a single metric
+set that it reports under its own reporter `id`. In an aggregated metric set:
+
+* the `sources` member MUST give the number of metric sets combined;
+* each counter is the sum of the corresponding counters;
+* each histogram is the merge of the corresponding histograms, which requires
+  that they use the same bounds;
+* each gauge is the mean of the corresponding gauges; and
+* an attribute is included only if it has the same value in every combined
+  set.
+
+A relay chooses which metric sets to combine, and MUST NOT combine sets from
+reporters whose reports it is not permitted to read. An aggregated metric set is
+a claim by the aggregating relay and MUST NOT be presented as the observation of
+any single reporter.
+
+## Redirecting Analytics {#redirection}
+
+A collection point uses the following MoQT {{MOQT}} mechanisms to move analytics
+delivery to another collection point:
+
+* A collection point that does not accept an analytics track rejects the
+  request that publishes it with a REQUEST_ERROR containing a Redirect, which
+  names the URI of another collection point and, optionally, a different track.
+* A collection point moves an established analytics track by sending GOAWAY on
+  the request stream of that track. This migrates only the analytics track and
+  leaves the reporter's media on the session unaffected.
+* A server moves an entire session, including its analytics tracks, by sending
+  GOAWAY on the control stream.
+
+A reporter treats the new collection point in the same way as the original one.
+It does not resend reports that it has already delivered. A collector detects
+any gap from the `sequence` field, and no counts are lost because counters are
+cumulative. A collection point that redirects reporters is responsible for
+ensuring that the target collection point accepts the reporters' authorization.
+
 ## Catalog-Directed Delivery {#catalog}
 
 An MSF {{MSF}} or CMSF {{CMSF}} catalog requests analytics by declaring an
@@ -874,6 +1003,10 @@ analytics track in its `publishTracks` array. The track object:
 * MAY include the `connectionUri` and `token` fields defined by {{MSF}}, to
   direct reports to a collector other than the catalog's origin and to
   authorize publishing.
+
+When `connectionUri` is absent, MSF specifies that the subscriber reuses the
+session on which it received the catalog, which results in reverse-path
+delivery ({{reverse-path}}).
 
 This document defines two additional track object fields:
 
@@ -925,13 +1058,64 @@ if needed, and publishes the analytics track as described in
 This mode supports deployments that do not use MSF, and lets publishers and
 relays report to an operator's collector.
 
-## Collector Subscription
+## Collector Subscription {#collector-subscription}
 
-A relay or publisher MAY publish its analytics track continuously within a
-namespace that collectors can subscribe to. Collectors then subscribe only to
+A reporter MAY publish its analytics track continuously within a namespace that
+collection points can subscribe to. Collectors then subscribe only to
 the reporters and tracks they need, and relays cache recent reports for later
 retrieval with FETCH. This allows metrics to be pulled on demand rather than
-pushed to every collector.
+pushed to every collector. Because analytics tracks from many reporters can
+share a namespace, a collection point that subscribes to that namespace at an
+upstream relay receives the analytics tracks forwarded by every relay below it.
+
+
+# Combining Reports {#correlation}
+
+Complete observability of a MoQT delivery combines metric sets from several
+reporters. A subscriber observes playback and the last hop, each relay observes
+its own sessions and cache, and a publisher observes encoding and the first
+hop. Because all reporters use the same data model, a collector can combine
+their metric sets, provided that it can determine which metric sets describe the
+same MoQT session.
+
+Both endpoints of a session can report a `session` set for it. Their metric sets
+are joined in one of the following ways:
+
+Implicit binding:
+: When a reporter uses reverse-path delivery ({{reverse-path}}), the
+  collection point at the other end of the session knows the session on which
+  the reports arrive. It records the reporter's `id` in the `peerReporterId`
+  member of its own `session` set, and an aggregating relay can combine the
+  metric sets directly.
+
+Correlation ID:
+: When reports are delivered to another collection point, both endpoints report
+  the session's correlation ID ({{correlation-id}}) in the `correlationId`
+  member of their `session` sets, and a collector joins sets with equal values.
+
+A relay relates its downstream and upstream sessions through the tracks that it
+forwards, as described by its `inbound-track` and `outbound-track` sets. A
+collector can therefore follow a track from publisher to subscriber across the
+correlated sessions along its path.
+
+Joining metric sets by time also requires that reporters' clocks are
+synchronized. Collectors SHOULD allow for clock differences between reporters
+when combining their metric sets.
+
+## CORRELATION_ID Setup Option {#correlation-id}
+
+A MoQT client MAY include the CORRELATION_ID Setup Option in its SETUP message
+({{MOQT}}). Its value is an opaque byte string of 8 to 32 bytes that the client
+generates randomly for each session. A client MUST NOT use the same value for
+more than one session, and MUST NOT derive it from an identifier of the user or
+device.
+
+A server that receives the CORRELATION_ID Setup Option SHOULD report its value
+in the `correlationId` member of its `session` set for the session, and the
+client reports the same value in its own `session` set. A relay that is itself
+a client of an upstream relay generates a separate value for each upstream
+session. Endpoints that do not implement this document ignore the option, as
+{{MOQT}} requires for unknown Setup Options.
 
 
 # Export to Monitoring Systems {#export}
@@ -1037,6 +1221,16 @@ exhaustion. Relays SHOULD apply the same authorization to analytics tracks as
 to other tracks. When relays must not read analytics, the reporter can protect
 objects end to end using {{SECURE-OBJECTS}}.
 
+A relay that reads or aggregates the reports of other reporters learns their
+contents, so relays are restricted to doing so only when operated by or on
+behalf of the party that requested the reports ({{reverse-path}}). Aggregated
+metric sets are claims by the aggregating relay, and collectors SHOULD weigh
+them according to their trust in that relay.
+
+A reporter follows a Redirect or GOAWAY only from the peer of an authenticated
+MoQT session, as {{MOQT}} specifies. Redirection could otherwise be used to
+divert reports to an unintended collector.
+
 
 # Privacy Considerations
 
@@ -1051,10 +1245,24 @@ Reporters SHOULD report track names only when they are needed
 individual detail is not needed, and SHOULD document retention policies for
 subscriber metrics.
 
+The correlation ID links a subscriber's reports to a relay's records of the
+same session. It is generated per session ({{correlation-id}}) so that it does
+not link a subscriber's sessions to one another. Aggregation at a relay
+({{aggregation}}) can reduce the amount of per-subscriber data that leaves the
+edge.
+
 
 # IANA Considerations {#iana}
 
-This document has no IANA actions. A future revision is expected to request:
+This document requests that IANA register the following entry in the "Setup
+Options" registry established by {{MOQT}}:
+
+| Type | Name | Specification |
+|---|---|---|
+| TBD (odd value) | CORRELATION_ID | {{correlation-id}} |
+{: title="Setup Option Registration"}
+
+A future revision is expected to request:
 
 * registration of the media types `application/moq-analytics+json` and
   `application/moq-analytics+cbor`;
@@ -1124,6 +1332,7 @@ set-common<T> = (
   type: T,
   id: tstr,
   timestamp: timestamp,
+  ? sources: uint,   ; aggregated sets only
 )
 
 track-ref = (
@@ -1145,6 +1354,8 @@ session-set = {
   ? state: "connecting" / "established" / "draining" / "closed",
   ? setupTime: seconds,
   ? goawaysReceived: counter,
+  ? correlationId: tstr,
+  ? peerReporterId: tstr,
   * ext-key => any,
 }
 
@@ -1332,17 +1543,22 @@ The following questions are open for discussion:
    mandatory only for collectors?
 4. Should histograms and counters support delta temporality in addition to
    cumulative temporality?
-5. Should analytics tracks use a new MSF packaging value, as proposed here, or a
-   profile of the `moqmetrics` packaging of {{MOQMETRICS}}? MSF currently lists
-   packaging values without a registry.
-6. Should analytics track names follow the granularity levels used by MSF
-   metrics tracks?
+5. MSF currently lists packaging values without a registry, and defines the
+   `metrics` role by reference to {{MOQMETRICS}}. Should MSF establish a
+   packaging registry and generalize the `metrics` role, or should this document
+   define its own role?
+6. Should a catalog be able to request, or forbid, aggregation of its analytics
+   at relays?
 7. How should track namespaces, which are tuples of byte strings in {{MOQT}}, be
    represented when they are not valid text?
 8. Which members of the feedback reports in {{MOQFEEDBACK}} should be aligned
    with members defined here?
 9. What clock synchronization should be assumed for `latency` and
    `liveLatency`?
+10. How should an aggregated metric set represent the distribution of a gauge
+    across reporters, rather than only its mean?
+11. Should a server also be able to send a correlation ID, for example so that
+    the edge relay assigns it?
 
 # Acknowledgments
 {:numbered="false"}
