@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-10-08T05:31:07.298602+00:00",
+  "timestamp": "2026-10-11T05:10:11.291905+00:00",
   "repo": "gmarzot/draft-marzot-moq-analytics",
   "labels": [
     {
@@ -80,6 +80,34 @@
       "mergedBy": "gmarzot",
       "mergeCommit": {
         "oid": "02a2b0301338f9b9d7830f6f7ce9bb140caa30c2"
+      },
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 2,
+      "id": "PR_kwDOUtX1cM8AAAABHoBe5w",
+      "title": "Add reverse-path delivery, relay aggregation, and correlation",
+      "url": "https://github.com/gmarzot/draft-marzot-moq-analytics/pull/2",
+      "state": "MERGED",
+      "author": "gmarzot",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "Describe collection points, reverse-path delivery with the edge relay as a first-hop aggregator when it is operated by or for the publisher, aggregation rules, and redirection using MoQT GOAWAY and REQUEST_ERROR redirects. Add a Combining Reports section with implicit binding and a CORRELATION_ID Setup Option, plus correlationId, peerReporterId, and sources members. Clarify that this document does not depend on the draft-jennings-moq-metrics payload.",
+      "createdAt": "2026-10-09T22:50:21Z",
+      "updatedAt": "2026-10-09T22:50:48Z",
+      "baseRepository": "gmarzot/draft-marzot-moq-analytics",
+      "baseRefName": "main",
+      "baseRefOid": "02a2b0301338f9b9d7830f6f7ce9bb140caa30c2",
+      "headRepository": "gmarzot/draft-marzot-moq-analytics",
+      "headRefName": "reverse-path-delivery",
+      "headRefOid": "37c6a989242246df2c0492f643d4bbe931ab053f",
+      "closedAt": "2026-10-09T22:50:48Z",
+      "mergedAt": "2026-10-09T22:50:48Z",
+      "mergedBy": "gmarzot",
+      "mergeCommit": {
+        "oid": "1e73dad499fc54b5792e9103f56f0946ce7fb26a"
       },
       "comments": [],
       "reviews": []
